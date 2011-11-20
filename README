@@ -1,0 +1,2 @@
+ofxWorkQueues - OpenFramworks Addon
+The idea behind this is to easily distribute "splittable" work on as many threads as you need. Useful on those fancy multi-core computer you can get nowadays.
