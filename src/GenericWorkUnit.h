@@ -13,12 +13,14 @@
 #include "ofAdvancedThread.h"
 #include <vector>
 
-#define WORK_UNIT_DRAW_H	18
+#define WORK_UNIT_DRAW_H	16
 #define TILE_DRAW_GAP_H		2
 #define TILE_DRAW_GAP_V		2
 
 #define TILE_DRAW_SPACING	8
 #define TEXT_DRAW_WIDTH		75
+
+#define MAX_PENDING_ON_SCREEN 75
 
 static int numWorkUnits = 0;
 

@@ -200,42 +200,56 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 	int h = WORK_UNIT_DRAW_H;
 	int gap = 8;
 	int tOffx = 0;
-	int nl = queueName.size();
-	int unitGap = 1;
+	//int nl = queueName.size();
+	//int unitGap = 1;
 	
-	glColor3ub(255,255,255);
+	
 	string time;
 
 	if (measureTimes){
 		time = ofToString(1000 * avgTimePerUnit,1) + "ms";
 	}
-
+	
+	ofSetColor(255,255,255);
 	if (queueID != -1){
 		char aux[10];
 		int l = sprintf(aux, "%d", queueID);
 		sprintf(aux, "%02d", queueID);	//force 2 digits for ID 
 		xOff = ( TEXT_DRAW_WIDTH ) ;
-		ofDrawBitmapString( queueName + " " +  aux , tOffx,  2 * h + h * 0.6);
+		ofDrawBitmapString( queueName + " " +  aux , tOffx,  /*2 * h  + */ h * 0.6);
 	}else{
 		xOff = ( TEXT_DRAW_WIDTH  ) ;
-		ofDrawBitmapString( queueName, tOffx,  2 * h + h * 0.6);
+		ofDrawBitmapString( queueName + " (" + ofToString(pending.size()) + ")", tOffx,  /* 2 * h + */ h * 0.6);
 	}
-
 
 	//lock();
 	int j;
-	for (j = 0; j< processed.size(); j++){
-		processed[j]->draw( gap + xOff + w * j, 2 * h, tileW, drawIDs);
+	int proc = processed.size();
+	for (j = 0; j< proc ; j++){
+		processed[j]->draw( gap + xOff + w * j, /*2 * h*/0, tileW, drawIDs);
 	}
 
-
-	for (j = 0; j< pending.size(); j++){
-		pending[j]->draw(gap + xOff + w * j, 2 * h, tileW, drawIDs);		
+	int pend = pending.size();
+	if (pend > MAX_PENDING_ON_SCREEN ) pend = MAX_PENDING_ON_SCREEN;
+	
+	for (j = 0; j< pend ; j++){
+		pending[j]->draw(gap + xOff + w * j, /*2 * h*/0, tileW, drawIDs);		
+	}
+	if (pend == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
+		glColor4f(0.5, 0.5, 0.5, 0.33);
+		ofRect( gap + xOff + w * j , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		j++;
+		glColor4f(0.5, 0.5, 0.5, 0.22);
+		ofRect( gap + xOff + w * j , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		j++;
+		glColor4f(0.5, 0.5, 0.5, 0.11);
+		ofRect( gap + xOff + w * j , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		j++;
 	}
 	//unlock();
 	
-	if (j > 0 && measureTimes){
-		glColor3ub(128,128,128);
-		ofDrawBitmapString( time , gap + xOff + 5 + w * j + w * 0.15, 2 * h + h - h * 0.33);
+	if (j > 0 && measureTimes ){
+		ofSetColor(128,128,128);
+		ofDrawBitmapString( time , gap + xOff + 5 + w * j + w * 0.15, /*2 * h + */ h - h * 0.33);
 	}
 }

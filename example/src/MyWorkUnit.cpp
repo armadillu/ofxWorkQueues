@@ -9,22 +9,32 @@
 
 #include "MyWorkUnit.h"
 
-MyWorkUnit::MyWorkUnit( float input_ ){
-	input = input_;	//store the input
+MyWorkUnit::MyWorkUnit( int factorialInput ){
+	input = factorialInput;	//store the input
 }
 
 
-void MyWorkUnit::process(){ //do your timely operations here, and update "processPercent" with your progress if you want to visualize it
+void MyWorkUnit::process(){ //this will be exectued on a non-maon thread, keep this in mind if using openGL (ofImage, OpenCV, etc...)
+							//do your timely operations here, and update "processPercent" with your progress if you want to visualize it on the queue draw method
 							//in this example, we'll be calculating the factorial of the input value 
 
-	result = 1;
-	int iterations = input * ofRandom(0.9, 1.1);	//add some unevenness to the thread work length
-	
-	for (int i = 0; i < iterations; i++){
+	result = 1;	
+	for (int i = 1; i < input; i++){	//let's iterate
+		
+		result *= (unsigned long long)i;			//iterative calculation of factorial
+		ofSleepMillis(10);							//let's pretend this operation takes a loong time...
+		
+		setPercentDone( (float)(i+1) / input );		//upate the progress in each loop
 		if (status == PENDING_CANCELLATION) return;	//really important to check this often during the process, to stop if early if required
-		result = iterations * result;
-		ofSleepMillis(1);
-		setPercentDone( (float)i / iterations );		//upate the progress in each loop
 	}
-	//or processing is over, we can gather the result from the main thread...
+	//our processing is done, we should gather the result from the main thread...
+}
+
+
+unsigned long long MyWorkUnit::getResult(){
+	return result;
+}
+
+int MyWorkUnit::getInput(){
+	return input;
 }

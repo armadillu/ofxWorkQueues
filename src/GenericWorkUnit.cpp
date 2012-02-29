@@ -28,24 +28,24 @@ void GenericWorkUnit::cancel(){
 
 void GenericWorkUnit::draw(int x, int y, int tileW, bool drawIDs){
 
-	glColor3ub(0,200,0);
+	ofSetColor(0,200,0);
 	setGLColorAccordingToStatus();
 	ofRect( x, y, tileW - TILE_DRAW_GAP_H, WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V );
 		
 	if (status == PROCESSING){
 		float hh = 0.2;
-		glColor3ub(0,0,0);
+		ofSetColor(0,0,0);
 		ofRect( x, y + (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V) * (1-hh) , tileW - TILE_DRAW_GAP_H,  hh * (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V)  );
-		glColor3ub(0,200,0);		
+		ofSetColor(0,200,0);		
 		ofRect( x, y + (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V) * (1-hh) , (tileW - TILE_DRAW_GAP_H) * processPercent , (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V) * hh  );
 	}
 	if (status == FAILED){
-		glColor3ub(255,0,0);
+		ofSetColor(255,0,0);
 		ofLine(x, y, x + tileW- TILE_DRAW_GAP_H, y + WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 		ofLine(x + tileW - TILE_DRAW_GAP_H, y, x , y + WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 	}
 	if (drawIDs){
-		glColor3ub(255,255,255);
+		ofSetColor(255,255,255);
 		ofDrawBitmapString( ofToString( ID ), x + tileW * 0.15,  y +  WORK_UNIT_DRAW_H * 0.66);
 	}
 }
@@ -57,13 +57,13 @@ void GenericWorkUnit::processInThread(){
 void GenericWorkUnit::setGLColorAccordingToStatus(){
 	
 	switch (status) {
-		case UNPROCESSED: glColor3ub(75,75,75); break;
-		case PROCESSING: glColor3ub(128,128,128); break;
-		case PROCESSED: glColor3ub(0,200,0); break;
-		case PENDING_CANCELLATION: glColor3ub(255,255,0); break;
-		case CANCELLED: glColor3ub(255,128,0); break;
-		case FAILED: glColor3ub(50,50,50); break;
-		default: glColor3ub(128,128,128); break;
+		case UNPROCESSED: ofSetColor(75,75,75); break;
+		case PROCESSING: ofSetColor(128,128,128); break;
+		case PROCESSED: ofSetColor(0,200,0); break;
+		case PENDING_CANCELLATION: ofSetColor(255,255,0); break;
+		case CANCELLED: ofSetColor(255,128,0); break;
+		case FAILED: ofSetColor(50,50,50); break;
+		default: ofSetColor(128,128,128); break;
 	}
 }
 

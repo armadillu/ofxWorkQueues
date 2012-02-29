@@ -54,6 +54,7 @@ class DedicatedMultiQueue : public ofAdvancedThread{
 		int								restTime;
 		int								maxWorkerQueueLen;
 		int								maxPendingQueueLength;
+		float								t;
 	
 		bool							timeToStop;
 		bool							verbose;

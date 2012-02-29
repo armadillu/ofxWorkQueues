@@ -16,11 +16,16 @@ class MyWorkUnit : public GenericWorkUnit{
 
 	public:
 
-		MyWorkUnit( float input_ );
+		MyWorkUnit( int factorialInput );
 		~MyWorkUnit(){};
+
+		unsigned long long getResult();
+		int getInput();
 	
-		float input;
-		float result;
+	private:
 	
-		virtual void process();
+		int input;
+		unsigned long long result;
+	
+		virtual void process();	//our subclass GenericWorkUnit subclassed method, that will run on a second thread
 };

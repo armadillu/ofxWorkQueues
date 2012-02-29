@@ -76,8 +76,8 @@ bool DetachThreadQueue::addWorkUnit(GenericWorkUnit* job){
 
 
 void DetachThreadQueue::draw( int tileW, bool drawIDs ){
-	
-	glColor3ub(255,0,0);
+		
+	ofSetColor(255,0,0);
 
 	lock();
 	
@@ -91,26 +91,61 @@ void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 				int w = tileW;
 				int h = WORK_UNIT_DRAW_H;
 				int gap = TILE_DRAW_SPACING;
+				int i;
 
 				//pending
-				glColor3ub(255,255,255);
-				ofDrawBitmapString( "pending", 0, h + h * 0.6);
-				for (int i = 0; i< pendingN; i++){
-					pending[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, h, tileW, drawIDs);
+				ofSetColor(255,255,255);
+				ofDrawBitmapString( "pending", 0,  h * 0.6);
+				int realPending = pendingN;
+				if (pendingN > MAX_PENDING_ON_SCREEN ) pendingN = MAX_PENDING_ON_SCREEN;	
+
+				for ( i = 0; i< pendingN; i++){
+					pending[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, 0, tileW, drawIDs);
+				}
+
+				if (pendingN == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
+					glColor4f(0.5, 0.5, 0.5, 0.33);
+					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+					i++;
+					glColor4f(0.5, 0.5, 0.5, 0.22);
+					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+					i++;
+					glColor4f(0.5, 0.5, 0.5, 0.11);
+					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+					i++;
+					ofSetColor(128,128,128);
+					ofDrawBitmapString( "(" + ofToString(realPending) + ")", gap + TEXT_DRAW_WIDTH + w * i, h * 0.6);
 				}
 
 				//processing
-				glColor3ub(255,255,255);
-				ofDrawBitmapString( "processing", 0, 2 * h + h * 0.6);
-				for (int i = 0; i< processingN; i++){					
-					processing[i]->draw( TEXT_DRAW_WIDTH + gap + w * i, 2 * h, tileW, drawIDs);
+				ofSetColor(255,255,255);
+				ofDrawBitmapString( "processing", 0,  h + h * 0.6);
+				for (i = 0; i< processingN; i++){					
+					processing[i]->draw( TEXT_DRAW_WIDTH + gap + w * i,  h, tileW, drawIDs);
 				}
 
 				//processed
-				glColor3ub(255,255,255);
-				ofDrawBitmapString( "processed", 0, 3 * h + h * 0.6);
-				for (int i = 0; i< processedN; i++){
-					processed[i]->draw( TEXT_DRAW_WIDTH + gap + w * i, 3 * h, tileW, drawIDs);
+				ofSetColor(255,255,255);
+				ofDrawBitmapString( "processed", 0, 2* h + h * 0.6);
+	
+				int realProcessedN = processedN;
+				if (processedN > MAX_PENDING_ON_SCREEN ) processedN = MAX_PENDING_ON_SCREEN;	
+				for (i = 0; i< processedN; i++){
+					processed[i]->draw( TEXT_DRAW_WIDTH + gap + w * i, 2 * h, tileW, drawIDs);
+				}
+	
+				if (processedN == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
+					glColor4f(0, 0.78, 0.0, 0.75);
+					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 2 * h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+					i++;
+					glColor4f(0, 0.78, 0.0, 0.50);
+					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 2 * h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+					i++;
+					glColor4f(00, 0.78, 0.0, 0.11);
+					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 2 * h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+					i++;
+					ofSetColor(128,128,128);
+					ofDrawBitmapString( "(" + ofToString(realProcessedN) + ")", gap + TEXT_DRAW_WIDTH + w * i, 2* h + h * 0.6);
 				}
 
 		glPopMatrix();

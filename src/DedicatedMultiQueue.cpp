@@ -112,13 +112,13 @@ bool DedicatedMultiQueue::addWorkUnit(GenericWorkUnit* job){
 
 void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDistance){
 	
-	glColor3ub(255,0,0);
+	ofSetColor(255,0,0);
 
 	lock();
 	
 		int pendingN = pending.size();
 		int processedN = processed.size();
-				
+			
 		glPushMatrix();
 			
 			int xOff = 0;
@@ -127,18 +127,35 @@ void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDi
 			int gap = TILE_DRAW_SPACING;
 			
 			//pending
-			glColor3ub(255,255,255);			
-			ofDrawBitmapString( "  pending", 0, h + h * 0.6);
-			for (int i = 0; i< pendingN; i++){
-				pending[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, h, tileW, drawIDs);
+			ofSetColor(255,255,255);			
+			ofDrawBitmapString( "  pending", 0, h * 0.6);
+			int realPending = pendingN;
+			if (pendingN > MAX_PENDING_ON_SCREEN ) pendingN = MAX_PENDING_ON_SCREEN;	//crop to max...
+			int i;
+			for ( i = 0; i< pendingN; i++){
+				pending[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, 0, tileW, drawIDs);
+			}
+
+			if (pendingN == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
+				glColor4f(0.5, 0.5, 0.5, 0.33);
+				ofRect( TEXT_DRAW_WIDTH + gap + w * i , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+				i++;
+				glColor4f(0.5, 0.5, 0.5, 0.22);
+				ofRect( TEXT_DRAW_WIDTH + gap + w * i , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+				i++;
+				glColor4f(0.5, 0.5, 0.5, 0.11);
+				ofRect( TEXT_DRAW_WIDTH + gap + w * i , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+				i++;
+				ofSetColor(128,128,128);
+				ofDrawBitmapString( "(" + ofToString(realPending) + ")", TEXT_DRAW_WIDTH + gap + w * i, h * 0.6);
 			}
 
 			
 			int c = 0;
-			for (int i = 0; i < numWorkers; i++){
+			for (i = 0; i < numWorkers; i++){
 				int yy = i %maxRows;
 				glPushMatrix();
-					glTranslatef(c * colDistance,h * yy,0);
+					glTranslatef(c * colDistance,h + (h) * yy,0);
 					workers[i]->draw(w, drawIDs, i);				
 				glPopMatrix();
 				if ( (1+i)%maxRows == 0){
@@ -148,11 +165,26 @@ void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDi
 			
 
 			//processed
-			glColor3ub(255,255,255);
-			ofDrawBitmapString( "processed", 0, ( c==0 ? numWorkers%maxRows + 2 : maxRows + 2 ) * h + h * 0.6);
-			if (processedN > 100) processedN = 100; //CAPPING TO 100
-			for (int i = 0; i< processedN; i++){	
-				processed[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, ( c==0 ? numWorkers%maxRows + 2 : maxRows + 2 ) * h, tileW, drawIDs);
+			ofSetColor(255,255,255);
+			ofDrawBitmapString( "processed", 0, ( c==0 ? numWorkers%maxRows : maxRows  ) * h + h + h * 0.6);
+			int realProcessedN = processedN;
+			if (processedN > MAX_PENDING_ON_SCREEN) processedN = MAX_PENDING_ON_SCREEN; //CAPPING TO 100
+			for (i = 0; i< processedN; i++){	
+				processed[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h, tileW, drawIDs);
+			}
+	
+			if (processedN == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
+				glColor4f(0, 0.78, 0.0, 0.5);
+				ofRect( TEXT_DRAW_WIDTH + gap + w * i , ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+				i++;
+				glColor4f(0, 0.78, 0.0, 0.25);
+				ofRect( TEXT_DRAW_WIDTH + gap + w * i , ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+				i++;
+				glColor4f(0, 0.78, 0.0, 0.125);
+				ofRect( TEXT_DRAW_WIDTH + gap + w * i , ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+				i++;
+				ofSetColor(128,128,128);
+				ofDrawBitmapString( "("+ofToString(realProcessedN)+")", TEXT_DRAW_WIDTH + gap + w * i, ( c==0 ? numWorkers%maxRows : maxRows  ) * h + h + h * 0.6);
 			}
 	
 		glPopMatrix();
@@ -165,28 +197,35 @@ void DedicatedMultiQueue::threadedFunction(){
 
 	int nPending = getPendingQueueLength();
 	if(verbose) printf("DedicatedMultiQueue::threadedFunction() start processing\n");
+	t = ofGetElapsedTimef();
 	setName("DedicatedMultiQueue Manager");
 	int stillWorking = 0;
 	
 	while( ( nPending > 0 || stillWorking > 0 ) && !timeToStop ){
 
-		if (nPending > 0 ){
-			int shortestQueue = shortestWorkQueue();
-			
-			if ( workers[shortestQueue]->getPendingQueueLength() < maxWorkerQueueLen ){
-				lock();
-					GenericWorkUnit * w = pending[0];
-					pending.erase( pending.begin() );
-				unlock();
+		for (int i = 0 ; i < numWorkers; i++){
+			lock();
+				nPending = pending.size();
+			unlock();
+
+			if (nPending > 0 ){
+				int shortestQueue = shortestWorkQueue();
 				
-				workers[shortestQueue]->addWorkUnit( w );
+				if ( workers[shortestQueue]->getPendingQueueLength() < maxWorkerQueueLen ){
+					lock();
+						GenericWorkUnit * w = pending[0];
+						pending.erase( pending.begin() );
+					unlock();
+					
+					workers[shortestQueue]->addWorkUnit( w );
+				}
 			}
 		}
 
 		updateQueues();	
-		lock();
-			nPending = pending.size();
-		unlock();
+//		lock();
+//			nPending = pending.size();
+//		unlock();
 		
 		stillWorking = 0;
 		for (int i = 0 ; i < numWorkers; i++) {
@@ -200,7 +239,10 @@ void DedicatedMultiQueue::threadedFunction(){
 	
 	updateQueues();
 	
-	if (verbose) printf("DedicatedMultiQueue::threadedFunction() end processing %f (%d stillWorking)\n", ofGetElapsedTimef() , stillWorking);
+	if (verbose){ 
+		t = ofGetElapsedTimef() - t;
+		printf("DedicatedMultiQueue::threadedFunction() end processing %f (%d stillWorking)\n", t , stillWorking);
+	}
 	
 	if (!timeToStop){
 		if (verbose) printf("detaching DedicatedMultiQueue thread!\n");
