@@ -1,8 +1,8 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int workUnitsToProcess = 1000;	//how many jobs should be completed by each queue 
-int howManyPerCycle = 4;			//num threads to distribute the jobs on
+int workUnitsToProcess = INT_MAX;	//how many jobs should be completed by each queue 
+int howManyPerCycle = 20;			//num threads to distribute the jobs on
 int maxPending = 100;				//how many work units can there be pending on the queue (buffer length)
 
 void testApp::setup(){	
@@ -57,7 +57,7 @@ void testApp::update(){
 
 		if ( wr1 != NULL ){	//we got a result from the queue!
 			MyWorkUnit * wu1 = (MyWorkUnit*)wr1; //force a cast to our WorkUnit Type
-			cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+			//cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
 			delete wr1;
 		}
 		
@@ -76,7 +76,7 @@ void testApp::update(){
 		GenericWorkUnit * wr2 = q2->retrieveNextProcessedUnit();
 		if (wr2 != NULL){
 			MyWorkUnit * wu1 = (MyWorkUnit*)wr2; //force a cast to our WorkUnit Type
-			cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+			//cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
 			delete wr2;
 		}
 
@@ -95,7 +95,7 @@ void testApp::update(){
 		GenericWorkUnit * wr3 = q3->retrieveNextProcessedUnit();
 		if (wr3 != NULL){
 			MyWorkUnit * wu1 = (MyWorkUnit*)wr3; //force a cast to our WorkUnit Type
-			cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+			//cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
 			delete wr3;
 		}
 	}

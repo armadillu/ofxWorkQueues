@@ -277,10 +277,11 @@ int DedicatedMultiQueue::shortestWorkQueue(){
 void DedicatedMultiQueue::updateQueues(){
 	
 	for (int i = 0; i < numWorkers; i++){
+		
 		GenericWorkUnit * w = workers[i]->retrieveNextProcessedUnit();
 		if (w != NULL){
 			lock();
-				processed.push_back( w );
+			processed.push_back( w );
 			unlock();
 		}
 	}	
@@ -289,8 +290,8 @@ void DedicatedMultiQueue::updateQueues(){
 
 GenericWorkUnit* DedicatedMultiQueue::retrieveNextProcessedUnit(){
 
+	GenericWorkUnit * w = NULL;
 	lock();
-		GenericWorkUnit * w = NULL;
 		if ( processed.size() > 0){
 			w = processed[0];
 			processed.erase( processed.begin() );

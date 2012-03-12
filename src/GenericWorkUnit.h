@@ -20,7 +20,7 @@
 #define TILE_DRAW_SPACING	8
 #define TEXT_DRAW_WIDTH		75
 
-#define MAX_PENDING_ON_SCREEN 75
+#define MAX_PENDING_ON_SCREEN 50
 
 static int numWorkUnits = 0;
 
