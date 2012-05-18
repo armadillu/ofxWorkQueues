@@ -85,8 +85,8 @@ void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 	ofSetColor(255,0,0);
 	int xOff = 0;
 	int w = tileW;
-	int h = WORK_UNIT_DRAW_H;
 	int gap = TILE_DRAW_SPACING;
+	int h = WORK_UNIT_DRAW_H;	
 	int i;
 
 	lock();
@@ -99,7 +99,7 @@ void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 				
 				//pending
 				ofSetColor(255,255,255);
-				ofDrawBitmapString( "pending", 0,  h * 0.6);
+				ofDrawBitmapString( "pending", 0,  h * BITMAP_MSG_HEIGHT);
 				int realPending = pendingN;
 				if (pendingN > MAX_PENDING_ON_SCREEN ) pendingN = MAX_PENDING_ON_SCREEN;	
 
@@ -118,19 +118,19 @@ void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 					i++;
 					ofSetColor(128,128,128);
-					ofDrawBitmapString( "(" + ofToString(realPending) + ")", gap + TEXT_DRAW_WIDTH + w * i, h * 0.6);
+					ofDrawBitmapString( "(" + ofToString(realPending) + ")", gap + TEXT_DRAW_WIDTH + w * i, h * BITMAP_MSG_HEIGHT);
 				}
 
 				//processing
 				ofSetColor(255,255,255);
-				ofDrawBitmapString( "processing", 0,  h + h * 0.6);
+				ofDrawBitmapString( "processing", 0,  h + h * BITMAP_MSG_HEIGHT);
 				for (i = 0; i< processingN; i++){					
 					processing[i]->draw( TEXT_DRAW_WIDTH + gap + w * i,  h, tileW, drawIDs);
 				}
 
 				//processed
 				ofSetColor(255,255,255);
-				ofDrawBitmapString( "processed", 0, 2* h + h * 0.6);
+				ofDrawBitmapString( "processed", 0, 2* h + h * BITMAP_MSG_HEIGHT);
 	
 				int realProcessedN = processedN;
 				if (processedN > MAX_PENDING_ON_SCREEN ) processedN = MAX_PENDING_ON_SCREEN;	
@@ -151,7 +151,7 @@ void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 					glColor4ub(64, 64, 64, 70);
 					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 2 * h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 					ofSetColor(128,128,128);
-					ofDrawBitmapString( "(" + ofToString(realProcessedN) + ")", gap + TEXT_DRAW_WIDTH + w * i, 2* h + h * 0.6);
+					ofDrawBitmapString( "(" + ofToString(realProcessedN) + ")", gap + TEXT_DRAW_WIDTH + w * i, 2* h + h * BITMAP_MSG_HEIGHT);
 				}
 
 		glPopMatrix();

@@ -57,7 +57,7 @@ void GenericWorkUnit::draw(int x, int y, int tileW, bool drawIDs){
 	}
 	if (drawIDs){
 		ofSetColor(255,255,255);
-		ofDrawBitmapString( ofToString( ID ), x + tileW * 0.15f,  y +  WORK_UNIT_DRAW_H * 0.66f);
+		ofDrawBitmapString( ofToString( ID ), x + tileW * 0.15f,  y +  h * BITMAP_MSG_HEIGHT);
 	}
 }
 

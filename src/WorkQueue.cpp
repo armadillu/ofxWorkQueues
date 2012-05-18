@@ -244,9 +244,9 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 	if (queueID != -1){
 		char aux[10];
 		int l = sprintf(aux, "%02d", queueID);	//force 2 digits for ID 
-		ofDrawBitmapString( queueName + " " +  aux , 0.0f,  /*2 * h  + */ h * 0.6f);
+		ofDrawBitmapString( queueName + " " +  aux , 0.0f,  /*2 * h  + */ h * BITMAP_MSG_HEIGHT);
 	}else{
-		ofDrawBitmapString( queueName + " (" + ofToString(pending.size()) + ")", 0.0f,  /* 2 * h + */ h * 0.6f);
+		ofDrawBitmapString( queueName + " (" + ofToString(pending.size()) + ")", 0.0f,  /* 2 * h + */ h * BITMAP_MSG_HEIGHT);
 	}
 
 	lock();	
@@ -287,6 +287,6 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 
 	if ( j > 0 && measureTimes ){
 		ofSetColor(128,128,128);
-		ofDrawBitmapString( time , gap + TEXT_DRAW_WIDTH + 5.0f + w * (off + j) + w * 0.15f, /*2 * h + */ h - h * 0.33f);
+		ofDrawBitmapString( time , gap + TEXT_DRAW_WIDTH + 5.0f + w * (off + j) + w * 0.15f, /*2 * h + */ h - h * (1.0f- BITMAP_MSG_HEIGHT));
 	}
 }
