@@ -24,7 +24,10 @@ class testApp : public ofBaseApp{
 		void mousePressed(int x, int y, int button){};
 		void exit();
 		
-
+		void addWorkUnitToWorkQueue(bool highPriority);
+		void addWorkUnitToDedicatedMultiQueue(bool highPriority);
+		void addWorkUnitToDetachThreadQueue(bool highPriority);
+	
 		WorkQueue * q1;				// A queue of work units, ine process after each other ( 1 thread  )
 		DedicatedMultiQueue * q2;	// N balanced WorkQueues, N threads. If queue is not empty, only N threads spawned.
 		DetachThreadQueue * q3;		// N jobs processed concurrently, spawns 1 new thread per job

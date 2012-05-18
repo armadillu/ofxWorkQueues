@@ -61,6 +61,7 @@ class GenericWorkUnit : public ofAdvancedThread{	//subclass this object to accom
 	private:
 
 		void				setIsHighPriority(){ highPriority = true; }
+		bool				isHighPriority(){ return highPriority; }
 
 		float				processPercent;	// you are suposed to update this, [0..1]
 		void				threadedFunction();

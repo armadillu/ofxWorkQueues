@@ -1,8 +1,9 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int howManyPerCycle = 3;			//num threads to distribute the jobs on
-int maxPending = 100;				//how many work units can there be pending on the queue (buffer length)
+int howManyPerCycle = 2;			//num threads to distribute the jobs on
+int maxPending = 50;				//how many work units can there be pending on the queue (buffer length)
+int maxFactorialToCalculate = 30;
 
 void testApp::setup(){	
 
@@ -42,19 +43,11 @@ void testApp::update(){
 	q2->update();
 	q3->update();
 	
-	int maxFactorialToCalculate = 30;
-	
 
 	//################################## Work Queue ##############################################
 	
-	//first, add our custom workUnit (GenericWorkUnit subclass) to our WorkQueue
-	MyWorkUnit * w1 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) ); //calculate some random factorial
-	bool didAdd = q1->addWorkUnit(w1);
-	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
-		delete w1;	
-	}else{
-		processedInWorkQueue++;
-	}
+	//add a job to the work queue
+	addWorkUnitToWorkQueue(false);
 	
 	//then, keep trying to collect results.....
 	GenericWorkUnit * wr1 = q1->retrieveNextProcessedUnit();
@@ -69,13 +62,7 @@ void testApp::update(){
 	//################################## Dedicated MultiQueue ##############################################
 			
 	//add a new job to our DedicatedMultiQueue
-	MyWorkUnit * w2 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) );
-	didAdd = q2->addWorkUnit(w2);
-	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
-		delete w2;
-	}else{
-		processedInDedicatedMultiQueue++;
-	}
+	addWorkUnitToDedicatedMultiQueue(false);
 	
 	//collect results..... 
 	GenericWorkUnit * wr2 = q2->retrieveNextProcessedUnit();
@@ -88,15 +75,9 @@ void testApp::update(){
 	
 	//################################## DetachThreadQueue ##############################################		
 
-	//add a job to our DetachThreadQueue
-	MyWorkUnit * w3 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) );
-	didAdd = q3->addWorkUnit(w3);
-	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
-		delete w3;
-	}else{
-		processedInDetachThreadQueue++;
-	}
-
+	//add a new job to our DetachThreadQueue
+	addWorkUnitToDetachThreadQueue(false);
+	
 	//collect results...
 	GenericWorkUnit * wr3 = q3->retrieveNextProcessedUnit();
 	if (wr3 != NULL){
@@ -135,15 +116,44 @@ void testApp::exit(){
 	printf("exiting!\n");
 };
 
-
-void testApp::keyPressed(int key){
+void testApp::addWorkUnitToWorkQueue(bool highPriority){
 	
-	//by pressing a keyb key, we add a high Priority job into the WorkQueue
-	MyWorkUnit * w1 = new MyWorkUnit( (int)ofRandom(25) ); //calculate some random factorial
-	bool didAdd = q1->addWorkUnit(w1, true); //add a highPriority job (true)
+	MyWorkUnit * w1 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) ); //calculate some random factorial
+	bool didAdd = q1->addWorkUnit(w1, highPriority);
 	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
 		delete w1;	
 	}else{
 		processedInWorkQueue++;
 	}
+}
+
+void testApp::addWorkUnitToDedicatedMultiQueue(bool highPriority){
+	
+	MyWorkUnit * w2 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) );
+	bool didAdd = q2->addWorkUnit(w2, highPriority);
+	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
+		delete w2;
+	}else{
+		processedInDedicatedMultiQueue++;
+	}
+}
+
+void testApp::addWorkUnitToDetachThreadQueue(bool highPriority){
+	
+	MyWorkUnit * w3 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) );
+	bool didAdd = q3->addWorkUnit(w3, highPriority);
+	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
+		delete w3;
+	}else{
+		processedInDetachThreadQueue++;
+	}
+}
+
+
+void testApp::keyPressed(int key){
+
+	addWorkUnitToWorkQueue(true);
+	addWorkUnitToDedicatedMultiQueue(true);
+	addWorkUnitToDetachThreadQueue(true);
 };
+

@@ -230,7 +230,7 @@ void DedicatedMultiQueue::threadedFunction(){
 				if ( ql < maxWorkerQueueLen ){
 					GenericWorkUnit * w = pending[0];
 					pending.erase( pending.begin() );
-					workers[shortestQueue]->addWorkUnit( w );
+					workers[shortestQueue]->addWorkUnit( w, w->highPriority );
 				}
 			}			
 		}
