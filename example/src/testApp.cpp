@@ -1,8 +1,8 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int howManyPerCycle = 2;			//num threads to distribute the jobs on
-int maxPending = 50;				//how many work units can there be pending on the queue (buffer length)
+int howManyPerCycle = 3;			//num threads to distribute the jobs on
+int maxPending = 60;				//how many work units can there be pending on the queue (buffer length)
 int maxFactorialToCalculate = 30;
 
 void testApp::setup(){	
@@ -152,8 +152,10 @@ void testApp::addWorkUnitToDetachThreadQueue(bool highPriority){
 
 void testApp::keyPressed(int key){
 
+	//add one high-priority job to each queue on key press
 	addWorkUnitToWorkQueue(true);
 	addWorkUnitToDedicatedMultiQueue(true);
 	addWorkUnitToDetachThreadQueue(true);
+	
 };
 
