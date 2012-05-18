@@ -89,26 +89,39 @@ void DedicatedMultiQueue::join(){
 	}
 }
 
-bool DedicatedMultiQueue::addWorkUnit(GenericWorkUnit* job){
+bool DedicatedMultiQueue::addWorkUnit(GenericWorkUnit* job, bool highPriority){
 
-	int ql = getPendingQueueLength();
+	lock();
+	bool ret = false;
+	int ql = pending.size();
 	
-	if (ql < maxPendingQueueLength ){
-		lock();
+	if ( ql < maxPendingQueueLength || ( ql < maxPendingQueueLength * 1.5  && highPriority ) ){
+		if (!highPriority){
 			pending.push_back(job);
-		unlock();
-
-		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() ID = %d\n", job->getID());		
-		if ( !isThreadRunning() ){	//if the queue is not running, lets start it
-			startThread(true, false);
+		}else{
+			job->highPriority = true;
+			pending.insert( pending.begin(), job);
 		}
-		return true;
+		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() ID = %d\n", job->getID());		
+		ret = true;
 	}else{
-		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() rejecting job, pending queue is already too long!\n");	
-		return false;
+		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() rejecting job %d, pending queue is already too long!\n", job->getID());			
 	}
+	unlock();
+	return ret;
 }
 
+void DedicatedMultiQueue::update(){
+	for(int i = 0; i < workers.size(); i++){
+		workers[i]->update();
+	}
+	if ( !isThreadRunning() ){
+		int nPending = pending.size();
+		if ( nPending > 0 ){	//if the queue is not running, lets start it
+			startThread(true, false);
+		}
+	}
+}
 
 void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDistance){
 	
@@ -133,7 +146,8 @@ void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDi
 			if (pendingN > MAX_PENDING_ON_SCREEN ) pendingN = MAX_PENDING_ON_SCREEN;	//crop to max...
 			int i;
 			for ( i = 0; i< pendingN; i++){
-				pending[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, 0, tileW, drawIDs);
+				GenericWorkUnit * gwu = pending[i];
+				gwu->draw(TEXT_DRAW_WIDTH + gap + w * i, 0, tileW, drawIDs);
 			}
 
 			if (pendingN == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
@@ -170,19 +184,20 @@ void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDi
 			int realProcessedN = processedN;
 			if (processedN > MAX_PENDING_ON_SCREEN) processedN = MAX_PENDING_ON_SCREEN; //CAPPING TO 100
 			for (i = 0; i< processedN; i++){	
-				processed[i]->draw(TEXT_DRAW_WIDTH + gap + w * i, ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h, tileW, drawIDs);
+				GenericWorkUnit * gwu = processed[i];
+				gwu->draw(TEXT_DRAW_WIDTH + gap + w * i, ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h, tileW, drawIDs);
 			}
 	
 			if (processedN == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
-				glColor4f(0, 0.78, 0.0, 0.5);
+				i++;
+				glColor4ub(64, 64, 64, 128);
 				ofRect( TEXT_DRAW_WIDTH + gap + w * i , ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 				i++;
-				glColor4f(0, 0.78, 0.0, 0.25);
+				glColor4ub(64, 64, 64, 100);
 				ofRect( TEXT_DRAW_WIDTH + gap + w * i , ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 				i++;
-				glColor4f(0, 0.78, 0.0, 0.125);
+				glColor4ub(64, 64, 64, 70);
 				ofRect( TEXT_DRAW_WIDTH + gap + w * i , ( c==0 ? numWorkers%maxRows  : maxRows  ) * h + h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
-				i++;
 				ofSetColor(128,128,128);
 				ofDrawBitmapString( "("+ofToString(realProcessedN)+")", TEXT_DRAW_WIDTH + gap + w * i, ( c==0 ? numWorkers%maxRows : maxRows  ) * h + h + h * 0.6);
 			}
@@ -203,36 +218,34 @@ void DedicatedMultiQueue::threadedFunction(){
 	
 	while( ( nPending > 0 || stillWorking > 0 ) && !timeToStop ){
 
+		lock();
 		for (int i = 0 ; i < numWorkers; i++){
-			lock();
-				nPending = pending.size();
-			unlock();
-
+			
+			nPending = pending.size();
 			if (nPending > 0 ){
+
 				int shortestQueue = shortestWorkQueue();
-				
-				if ( workers[shortestQueue]->getPendingQueueLength() < maxWorkerQueueLen ){
-					lock();
-						GenericWorkUnit * w = pending[0];
-						pending.erase( pending.begin() );
-					unlock();
-					
+				int ql = workers[shortestQueue]->getPendingQueueLength();
+
+				if ( ql < maxWorkerQueueLen ){
+					GenericWorkUnit * w = pending[0];
+					pending.erase( pending.begin() );
 					workers[shortestQueue]->addWorkUnit( w );
 				}
-			}
+			}			
 		}
-
-		updateQueues();	
-//		lock();
-//			nPending = pending.size();
-//		unlock();
+		unlock();
 		
+		updateQueues();	
+		
+		lock();
 		stillWorking = 0;
 		for (int i = 0 ; i < numWorkers; i++) {
 			if ( workers[i]->getPendingQueueLength() > 0){
 				stillWorking++;
 			}
 		}
+		unlock();
 		if (restTime>0)
 			ofSleepMillis(restTime);
 	}
@@ -276,15 +289,14 @@ int DedicatedMultiQueue::shortestWorkQueue(){
 
 void DedicatedMultiQueue::updateQueues(){
 	
+	lock();		
 	for (int i = 0; i < numWorkers; i++){
-		
 		GenericWorkUnit * w = workers[i]->retrieveNextProcessedUnit();
 		if (w != NULL){
-			lock();
 			processed.push_back( w );
-			unlock();
 		}
 	}	
+	unlock();
 }
 
 
@@ -295,6 +307,7 @@ GenericWorkUnit* DedicatedMultiQueue::retrieveNextProcessedUnit(){
 		if ( processed.size() > 0){
 			w = processed[0];
 			processed.erase( processed.begin() );
+			if(verbose) printf("DedicatedMultiQueue::retrieveNextProcessedUnit() %d\n", w->getID());
 		}
 	unlock();
 	return w;

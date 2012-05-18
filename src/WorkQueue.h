@@ -14,7 +14,7 @@
 #include "ofAdvancedThread.h"
 #include <vector>
 
-static int numWorkQueues = 0;
+static int numWorkQueues = 0; 
 
 class WorkQueue : public ofAdvancedThread{	//subclass this object to accomodate your desired work
 	
@@ -24,8 +24,9 @@ class WorkQueue : public ofAdvancedThread{	//subclass this object to accomodate 
 		~WorkQueue();
 	
 		void draw( int width = 24, bool drawIDs = false, int queueID = -1);
+		void update();
 	
-		bool addWorkUnit( GenericWorkUnit * job);
+		bool addWorkUnit( GenericWorkUnit * job, bool highPriority = false);
 		GenericWorkUnit* retrieveNextProcessedUnit();
 
 		float getCurrentWorkUnitPercentDone();
@@ -34,8 +35,8 @@ class WorkQueue : public ofAdvancedThread{	//subclass this object to accomodate 
 	
 		int getPendingQueueLength();
 		int getProcessedQueueLength();
-		void setVerbose(bool v){ verbose = v;}
-		void setMaxQueueLength(int l){ maxQueueLen = l; }
+		void setVerbose(bool v);
+		void setMaxQueueLength(int l){ maxQueueLen = l; pending.reserve(maxQueueLen); }
 		void setMeasureTimes(bool m){ measureTimes = m; }
 		void setQueueName(string name){ queueName = name; }
 	

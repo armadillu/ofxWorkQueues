@@ -24,7 +24,7 @@ BlurWorkUnit::~BlurWorkUnit(){
 
 void BlurWorkUnit::process(){ //this will be exectued on a non-maon thread, keep this in mind if using openGL (ofImage, OpenCV, etc...)
 
-	int iterations = 12;
+	int iterations = 5;
 	
 	for (int i = 0; i < iterations; i++){
 		image.blurGaussian(25);

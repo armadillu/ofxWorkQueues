@@ -13,17 +13,17 @@
 #include "ofAdvancedThread.h"
 #include <vector>
 
-#define WORK_UNIT_DRAW_H	16
-#define TILE_DRAW_GAP_H		2
-#define TILE_DRAW_GAP_V		2
+#define WORK_UNIT_DRAW_H	16.0f
+#define TILE_DRAW_GAP_H		2.0f
+#define TILE_DRAW_GAP_V		2.0f
 
-#define TILE_DRAW_SPACING	8
-#define TEXT_DRAW_WIDTH		75
+#define TILE_DRAW_SPACING	8.0f
+#define TEXT_DRAW_WIDTH		75.0f
+#define HIGH_PRIORITY_MARK_SIZE		0.25f
 
 #define MAX_PENDING_ON_SCREEN 50
 
 static int numWorkUnits = 0;
-
 
 class GenericWorkUnit : public ofAdvancedThread{	//subclass this object to accomodate your desired work
 	
@@ -34,6 +34,7 @@ class GenericWorkUnit : public ofAdvancedThread{	//subclass this object to accom
 		enum WorkUnitStatus { UNPROCESSED = 0, PROCESSING, PROCESSED, PENDING_CANCELLATION,  CANCELLED, FAILED };
 	
 		GenericWorkUnit();
+		virtual ~GenericWorkUnit();
 		void processInThread();		//call this to spawn a thread that will do the work (process()) and clean up after himself
 		void cancel();				//flags the thread to stop its work, call this if you want to stop early
 
@@ -50,16 +51,22 @@ class GenericWorkUnit : public ofAdvancedThread{	//subclass this object to accom
 		virtual void setGLColorAccordingToStatus();
 	
 		virtual void draw(int x, int y, int tileW, bool drawIDs);
-
+		
 	protected:
 
 		WorkUnitStatus		status;			
 		int					ID;				// grows automatically for each created GenericWorkUnit
 
 	private:
-	
+
+		void				setIsHighPriority(){ highPriority = true; }
+
 		float				processPercent;	// you are suposed to update this, [0..1]
 		void				threadedFunction();
 		bool				debug;
+		bool				highPriority;
+	
+		friend class		WorkQueue; 
+		friend class		DedicatedMultiQueue;
 
 };

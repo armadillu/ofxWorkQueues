@@ -54,30 +54,40 @@ DetachThreadQueue::~DetachThreadQueue(){
 
 
 
-bool DetachThreadQueue::addWorkUnit(GenericWorkUnit* job){
+bool DetachThreadQueue::addWorkUnit(GenericWorkUnit* job, bool highPriority){
 
-	int ql = getPendingQueueLength();
+	bool ret = false;
+	
+	lock();
+		int ql = pending.size();
+	
+		if ( ql < maxPendingQueueLength || ( ql < maxPendingQueueLength * 1.5  && highPriority ) ){ // if job is high priority, give some margin to the max pending queue len restriction
 
-	if (ql < maxPendingQueueLength ){
-		lock();
-			pending.push_back(job);
-		unlock();
+			if (!highPriority){
+				pending.push_back(job);
+			}else{
+				job->highPriority = true;
+				pending.insert( pending.begin(), job);
+			}
 
-		if (verbose) printf("DetachThreadQueue::addWorkUnit() ID = %d\n", job->getID());	
-		if ( !isThreadRunning() ){	//if the queue is not running, lets start it
-			startThread(true, false);
+			if (verbose) printf("DetachThreadQueue::addWorkUnit() ID = %d\n", job->getID());	
+			ret = true;;
+		}else{
+			if (verbose) printf("DetachThreadQueue::addWorkUnit() rejecting job, pending queue is already too long!\n");	
 		}
-		return true;
-	}else{
-		if (verbose) printf("DetachThreadQueue::addWorkUnit() rejecting job, pending queue is already too long!\n");	
-		return false;
-	}
+	unlock();
+	return ret;
 }
 
 
 void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 		
 	ofSetColor(255,0,0);
+	int xOff = 0;
+	int w = tileW;
+	int h = WORK_UNIT_DRAW_H;
+	int gap = TILE_DRAW_SPACING;
+	int i;
 
 	lock();
 	
@@ -87,12 +97,6 @@ void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 				
 		glPushMatrix();
 				
-				int xOff = 0;
-				int w = tileW;
-				int h = WORK_UNIT_DRAW_H;
-				int gap = TILE_DRAW_SPACING;
-				int i;
-
 				//pending
 				ofSetColor(255,255,255);
 				ofDrawBitmapString( "pending", 0,  h * 0.6);
@@ -133,32 +137,35 @@ void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 				for (i = 0; i< processedN; i++){
 					processed[i]->draw( TEXT_DRAW_WIDTH + gap + w * i, 2 * h, tileW, drawIDs);
 				}
-	
+
+	unlock();
+
 				if (processedN == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
-					glColor4f(0, 0.78, 0.0, 0.75);
+					i++;
+					glColor4ub(64, 64, 64, 128);
 					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 2 * h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 					i++;
-					glColor4f(0, 0.78, 0.0, 0.50);
+					glColor4ub(64, 64, 64, 100);
 					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 2 * h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 					i++;
-					glColor4f(00, 0.78, 0.0, 0.11);
+					glColor4ub(64, 64, 64, 70);
 					ofRect( gap + TEXT_DRAW_WIDTH + w * i , 2 * h , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
-					i++;
 					ofSetColor(128,128,128);
 					ofDrawBitmapString( "(" + ofToString(realProcessedN) + ")", gap + TEXT_DRAW_WIDTH + w * i, 2* h + h * 0.6);
 				}
 
 		glPopMatrix();
-	
-	unlock();
-	
+		
 }
 
 
 void DetachThreadQueue::threadedFunction(){
 
-	int nPending = getPendingQueueLength();
-	int nProcessing = getProcessingQueueLength();
+	lock();
+		int nPending = pending.size();
+		int nProcessing = processing.size();
+	unlock();
+	
 	if(verbose) printf("DetachThreadQueue::threadedFunction() start processing\n");
 	setName("DetachThreadQueue Manager");
 	
@@ -183,9 +190,11 @@ void DetachThreadQueue::threadedFunction(){
 		}
 
 		updateQueues();
-
-		nPending = pending.size();
-		nProcessing = processing.size();
+		
+		lock();
+			nPending = pending.size();
+			nProcessing = processing.size();
+		unlock();
 	}
 	
 	if(verbose) printf("DetachThreadQueue::threadedFunction() end processing %f\n", ofGetElapsedTimef() );
@@ -194,6 +203,17 @@ void DetachThreadQueue::threadedFunction(){
 		if (verbose) printf("detaching DetachThreadQueue thread!\n");
 		stopThread(true);		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared. 
 						//If not detached or joined with, it takes resources... neat, uh?
+	}
+}
+
+void DetachThreadQueue::update(){
+	
+	if ( !isThreadRunning() ){ //if thread is stopped and there's work to do, start it
+		int nPending = pending.size();
+		
+		if ( nPending > 0 ){	//if the queue is not running, lets start it
+			startThread(true, false);
+		}
 	}
 }
 

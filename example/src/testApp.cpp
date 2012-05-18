@@ -1,104 +1,110 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int workUnitsToProcess = INT_MAX;	//how many jobs should be completed by each queue 
-int howManyPerCycle = 20;			//num threads to distribute the jobs on
+int howManyPerCycle = 3;			//num threads to distribute the jobs on
 int maxPending = 100;				//how many work units can there be pending on the queue (buffer length)
 
 void testApp::setup(){	
 
 	ofSetFrameRate(60);
 	ofEnableAlphaBlending();
-	ofBackground(22, 22, 22);
-	//ofSetVerticalSync(true);
+	ofBackground(11, 11, 11);
+	ofSetVerticalSync(true);
 	
-	q1 = new WorkQueue();		// A queue of work units, ine process after each other ( 1 thread  )
+	q1 = new WorkQueue();		// A queue of work units, one processed after each other ( 1 thread )
 	//q1->setVerbose(true);
-	q1->setMeasureTimes(true);
-	q1->setMaxQueueLength(maxPending);
+	q1->setMeasureTimes(true);			//measure how long each job takes, and draw the average 
+	q1->setMaxQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	
-	q2 = new DedicatedMultiQueue(howManyPerCycle );	// N balanced WorkQueues, N threads. If queue is never empty (always work to do), only N threads spawned.
+	q2 = new DedicatedMultiQueue(howManyPerCycle );	// N balanced WorkQueues, N threads. If queue is never empty (there's always jobs to do), only N threads spawned ever.
 	//q2->setVerbose(true);
-	q2->setMeasureTimes(true);
-	q2->setRestTimeMillis(1);	//how much the dispatcher sleeps after each dispathing
+	q2->setMeasureTimes(true);					//measure how long each job takes, and draw the average 
+	q2->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispathing. Low numbers make it faster, but takes more cpu
 	q2->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
-	q2->setIndividualWorkerQueueMaxLen(10);	//3 work units buffered per queue
+	q2->setIndividualWorkerQueueMaxLen(10);		//how many work units each thread queue can have
 	
-	q3 = new DetachThreadQueue();	// N jobs processed concurrently, spawns 1 new thread per job
+	q3 = new DetachThreadQueue();	// N jobs processed concurrently, spawns a new thread per job
 	//q3->setVerbose(true);
-	q3->setRestTimeMillis(1);	//how much the dispatcher sleeps after each dispathing
+	q3->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispathing
 	q3->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
-	q3->setMaxJobsAtATime(howManyPerCycle);	//how many jobs to process at a time
+	q3->setMaxJobsAtATime(howManyPerCycle);		//how many jobs to process at a time (threads)
 	
-	//counters for each queue
+	//counters of processed jobs for each queue
 	processedInWorkQueue = 0;
 	processedInDedicatedMultiQueue = 0;
 	processedInDetachThreadQueue = 0;
-
 }
 
 
 void testApp::update(){
+		
+	q1->update();
+	q2->update();
+	q3->update();
 	
-	if ( workUnitsToProcess > 0 ){
+	int maxFactorialToCalculate = 30;
+	
 
-		//################################## Work Queue ##############################################
-		
-		//first, add our custom workUnit (job) (GenericWorkUnit subclass) to our WorkQueue
-		MyWorkUnit * w1;
-		if (processedInWorkQueue < workUnitsToProcess){
-			w1 = new MyWorkUnit( (int)ofRandom(20) ); //calculate some random factorial
-			q1->addWorkUnit(w1);
-			processedInWorkQueue++;
-		}
-		
-		//then, keep trying to collect results.....
-		GenericWorkUnit * wr1 = q1->retrieveNextProcessedUnit();
-
-		if ( wr1 != NULL ){	//we got a result from the queue!
-			MyWorkUnit * wu1 = (MyWorkUnit*)wr1; //force a cast to our WorkUnit Type
-			//cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
-			delete wr1;
-		}
-		
-		
-		//################################## Dedicated MultiQueue ##############################################
-				
-		//add a job to our DedicatedMultiQueue
-		MyWorkUnit * w2;
-		if (processedInDedicatedMultiQueue < workUnitsToProcess){
-			w2 = new MyWorkUnit( (int)ofRandom(20) );
-			q2->addWorkUnit(w2);
-			processedInDedicatedMultiQueue++;
-		}
-		
-		//collect results..... 
-		GenericWorkUnit * wr2 = q2->retrieveNextProcessedUnit();
-		if (wr2 != NULL){
-			MyWorkUnit * wu1 = (MyWorkUnit*)wr2; //force a cast to our WorkUnit Type
-			//cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
-			delete wr2;
-		}
-
-		
-		//################################## DetachThreadQueue ##############################################		
-
-		//add a job to our DetachThreadQueue
-		MyWorkUnit * w3;
-		if (processedInDetachThreadQueue < workUnitsToProcess){
-			w3 = new MyWorkUnit( (int)ofRandom(20) );
-			q3->addWorkUnit(w3);
-			processedInDetachThreadQueue++;
-		}
-
-		//collect results...
-		GenericWorkUnit * wr3 = q3->retrieveNextProcessedUnit();
-		if (wr3 != NULL){
-			MyWorkUnit * wu1 = (MyWorkUnit*)wr3; //force a cast to our WorkUnit Type
-			//cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
-			delete wr3;
-		}
+	//################################## Work Queue ##############################################
+	
+	//first, add our custom workUnit (GenericWorkUnit subclass) to our WorkQueue
+	MyWorkUnit * w1 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) ); //calculate some random factorial
+	bool didAdd = q1->addWorkUnit(w1);
+	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
+		delete w1;	
+	}else{
+		processedInWorkQueue++;
 	}
+	
+	//then, keep trying to collect results.....
+	GenericWorkUnit * wr1 = q1->retrieveNextProcessedUnit();
+
+	if ( wr1 != NULL ){	//we got a result from the queue!
+		MyWorkUnit * wu1 = (MyWorkUnit*)wr1; //force a cast to our WorkUnit Type
+		cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+		delete wr1; //once we got our result, delete the work unit that was holding it
+	}
+	
+	
+	//################################## Dedicated MultiQueue ##############################################
+			
+	//add a new job to our DedicatedMultiQueue
+	MyWorkUnit * w2 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) );
+	didAdd = q2->addWorkUnit(w2);
+	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
+		delete w2;
+	}else{
+		processedInDedicatedMultiQueue++;
+	}
+	
+	//collect results..... 
+	GenericWorkUnit * wr2 = q2->retrieveNextProcessedUnit();
+	if (wr2 != NULL){
+		MyWorkUnit * wu1 = (MyWorkUnit*)wr2; //force a cast to our WorkUnit Type
+		cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+		delete wr2; //once we got our result, delete the work unit that was holding it
+	}
+
+	
+	//################################## DetachThreadQueue ##############################################		
+
+	//add a job to our DetachThreadQueue
+	MyWorkUnit * w3 = new MyWorkUnit( (int)ofRandom(maxFactorialToCalculate) );
+	didAdd = q3->addWorkUnit(w3);
+	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
+		delete w3;
+	}else{
+		processedInDetachThreadQueue++;
+	}
+
+	//collect results...
+	GenericWorkUnit * wr3 = q3->retrieveNextProcessedUnit();
+	if (wr3 != NULL){
+		MyWorkUnit * wu1 = (MyWorkUnit*)wr3; //force a cast to our WorkUnit Type
+		cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+		delete wr3; //once we got our result, delete the work unit that was holding it
+	}
+	
 }
 
 
@@ -110,7 +116,7 @@ void testApp::draw(){
 	glTranslatef(20, 60, 0);
 	
 	int cellWidth = 10;		//width of each cell
-	bool drawID = false;	//draw the ID on top of the cell
+	bool drawID = false;	//draw each job's ID on top of its cell
 	
 	q1->draw(cellWidth, drawID);
 	
@@ -127,4 +133,17 @@ void testApp::exit(){
 	delete q2;
 	delete q3;
 	printf("exiting!\n");
+};
+
+
+void testApp::keyPressed(int key){
+	
+	//by pressing a keyb key, we add a high Priority job into the WorkQueue
+	MyWorkUnit * w1 = new MyWorkUnit( (int)ofRandom(25) ); //calculate some random factorial
+	bool didAdd = q1->addWorkUnit(w1, true); //add a highPriority job (true)
+	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
+		delete w1;	
+	}else{
+		processedInWorkQueue++;
+	}
 };

@@ -22,21 +22,25 @@ class DetachThreadQueue : public ofAdvancedThread{
 
 		DetachThreadQueue();
 		~DetachThreadQueue();
-	
-		bool addWorkUnit(GenericWorkUnit* job);
-		GenericWorkUnit* retrieveNextProcessedUnit();
-		void updateQueues();
+		
 		void draw( int tileW = 24, bool drawIDs = false );
+		void update();
+		bool addWorkUnit(GenericWorkUnit* job, bool highPriority = false);
+		GenericWorkUnit* retrieveNextProcessedUnit();
 	
 		void setMaxJobsAtATime(int numJobs){ maxProcessing = numJobs; }
 		void setRestTimeMillis(int millis){ restTime = millis; }
 		void setVerbose(bool v){ verbose = v; }
 		void setMaxPendingQueueLength(int l){ maxPendingQueueLength = l; }
-	
+		
 		int getPendingQueueLength();
 		int getProcessingQueueLength();
 		int getProcessedQueueLength();
 
+	private:
+
+		void updateQueues();
+	
 		void threadedFunction();
 
 		vector <GenericWorkUnit*>	pending;	
@@ -49,5 +53,4 @@ class DetachThreadQueue : public ofAdvancedThread{
 	
 		bool						timeToStop;
 		bool						verbose;
-
 };

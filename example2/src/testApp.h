@@ -27,7 +27,7 @@ class testApp : public ofBaseApp{
 		int	camWidth;
 		int	camHeight;
 		
-		DedicatedMultiQueue * q1;	// N balanced WorkQueues, N threads. If queue is not empty, only N threads spawned.
+		DedicatedMultiQueue * q;	// N balanced WorkQueues, N threads. If queue is always busy, only N threads spawned.
 		ofxCvColorImage blurredImage;
 };
 

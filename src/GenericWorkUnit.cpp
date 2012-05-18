@@ -7,10 +7,8 @@
  *
  */
 
-
 #include "ofMain.h"
 #include "GenericWorkUnit.h"
-
 	
 GenericWorkUnit::GenericWorkUnit(){
 	status = UNPROCESSED;
@@ -18,8 +16,13 @@ GenericWorkUnit::GenericWorkUnit(){
 	numWorkUnits ++;
 	processPercent = 0.0f;
 	debug = false;
+	highPriority = false;
+	//printf("new GenericWorkUnit ith ID %d\n", ID);
 }				
 	
+GenericWorkUnit::~GenericWorkUnit(){
+	//printf("~GenericWorkUnit();\n");
+}
 
 void GenericWorkUnit::cancel(){
 	status = PENDING_CANCELLATION;
@@ -30,23 +33,31 @@ void GenericWorkUnit::draw(int x, int y, int tileW, bool drawIDs){
 
 	ofSetColor(0,200,0);
 	setGLColorAccordingToStatus();
-	ofRect( x, y, tileW - TILE_DRAW_GAP_H, WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V );
+	float w = tileW - TILE_DRAW_GAP_H;
+	float h = WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V;
+	ofRect( x, y, w, h );
 		
 	if (status == PROCESSING){
 		float hh = 0.2;
 		ofSetColor(0,0,0);
-		ofRect( x, y + (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V) * (1-hh) , tileW - TILE_DRAW_GAP_H,  hh * (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V)  );
+		ofRect( x, y + (h) * (1-hh) , w,  hh * (h)  );
 		ofSetColor(0,200,0);		
-		ofRect( x, y + (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V) * (1-hh) , (tileW - TILE_DRAW_GAP_H) * processPercent , (WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V) * hh  );
+		ofRect( x, y + (h) * (1-hh) , (w) * processPercent , (h) * hh  );
 	}
 	if (status == FAILED){
 		ofSetColor(255,0,0);
-		ofLine(x, y, x + tileW- TILE_DRAW_GAP_H, y + WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
-		ofLine(x + tileW - TILE_DRAW_GAP_H, y, x , y + WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		ofLine(x, y, x + tileW- TILE_DRAW_GAP_H, y + h);
+		ofLine(x + w, y, x , y + h);
+	}
+	if (highPriority){
+		ofSetColor(255, 128, 0, 128);
+		ofTriangle(x + w - WORK_UNIT_DRAW_H * HIGH_PRIORITY_MARK_SIZE, y, 
+				   x + w, y, 
+				   x + w, y + WORK_UNIT_DRAW_H * HIGH_PRIORITY_MARK_SIZE );
 	}
 	if (drawIDs){
 		ofSetColor(255,255,255);
-		ofDrawBitmapString( ofToString( ID ), x + tileW * 0.15,  y +  WORK_UNIT_DRAW_H * 0.66);
+		ofDrawBitmapString( ofToString( ID ), x + tileW * 0.15f,  y +  WORK_UNIT_DRAW_H * 0.66f);
 	}
 }
 
@@ -57,7 +68,7 @@ void GenericWorkUnit::processInThread(){
 void GenericWorkUnit::setGLColorAccordingToStatus(){
 	
 	switch (status) {
-		case UNPROCESSED: ofSetColor(75,75,75); break;
+		case UNPROCESSED: ofSetColor(64,64,64); break;
 		case PROCESSING: ofSetColor(128,128,128); break;
 		case PROCESSED: ofSetColor(0,200,0); break;
 		case PENDING_CANCELLATION: ofSetColor(255,255,0); break;

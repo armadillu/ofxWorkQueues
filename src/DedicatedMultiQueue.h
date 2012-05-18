@@ -25,10 +25,11 @@ class DedicatedMultiQueue : public ofAdvancedThread{
 		DedicatedMultiQueue( int numWorkers_ = 4);
 		~DedicatedMultiQueue();
 	
-		bool addWorkUnit(GenericWorkUnit* job);
+		bool addWorkUnit(GenericWorkUnit* job, bool highPriority = false);
 		GenericWorkUnit* retrieveNextProcessedUnit();
 		
 		void draw( int tileW = 24, bool drawIDs = false, int maxRows = 40, int ColDistance = 300);
+		void update();
 	
 		void setRestTimeMillis(int millis){ restTime = millis; }
 		void setVerbose(bool v){ verbose = v; }

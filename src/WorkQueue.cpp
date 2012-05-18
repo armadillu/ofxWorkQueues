@@ -20,6 +20,8 @@ WorkQueue::WorkQueue(){
 	measureTimes = false;
 	avgTimePerUnit = 0;	
 	queueName = "q";
+	pending.clear();
+	processed.clear();
 }
 
 WorkQueue::~WorkQueue(){
@@ -63,46 +65,56 @@ void WorkQueue::join(){
 }
 
 
-bool WorkQueue::addWorkUnit( GenericWorkUnit * job){
-
-	int cl = getPendingQueueLength();
-
-	if ( cl < maxQueueLen ){
-		if (verbose) printf("WorkQueue::addWorkUnit() ID = %d\n", job->getID() );			
-		lock();
-			pending.push_back(job);
-		unlock();
-		
-		if ( !isThreadRunning() ){	//if the queue is not running, lets start it
-			startThread(true, false);
-		}
-		return true;
-	}else{	
-		if (verbose) printf("WorkQueue::addWorkUnit() rejecting job, queue is too long!\n");	
-		return false;
-	}
-}
-
-
 GenericWorkUnit* WorkQueue::retrieveNextProcessedUnit(){
-
+	
+	GenericWorkUnit * w = NULL;
 	lock();
-		GenericWorkUnit * w = NULL;
-		if ( processed.size() > 0){
-			w = processed[0];
-			processed.erase( processed.begin() );
-		}
+	int procS = processed.size();
+	if ( processed.size() > 0){
+		w = processed[0];
+		if(verbose) printf("WorkQueue::retrieveNextProcessedUnit() %d\n", w->getID());
+		processed.erase( processed.begin() );
+	}
 	unlock();
 	return w;
 }
 
+bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
+
+	bool ret = false;
+	if (verbose) printf("WorkQueue::addWorkUnit() trying to add ID = %d\n", job->getID() );			
+	lock();
+		int cl = pending.size();
+		
+		if ( cl < maxQueueLen || ( cl < maxQueueLen * 1.5  && highPriority ) ){ // if job is high priority, give some margin to the max pending queue len restriction
+			if (verbose) printf("WorkQueue::addWorkUnit() added ID = %d\n", job->getID() );
+			if (!highPriority){
+				pending.push_back(job);
+			}else{
+				job->highPriority = true;
+				pending.insert( pending.begin(), job);
+			}
+			ret = true;
+		}else{	
+			if (verbose) printf("WorkQueue::addWorkUnit() rejecting job %d, queue is too long!\n", job->getID());	
+			ret = false;
+		}
+	unlock();
+	return ret;
+}
+
 void WorkQueue::updateAverageTimes(float lastTime){
-	avgTimePerUnit = 0.4 * lastTime + 0.6 * avgTimePerUnit;
+	avgTimePerUnit = 0.2 * lastTime + 0.8 * avgTimePerUnit;
+}
+
+void WorkQueue::setVerbose(bool v){ 
+	verbose = v;
 }
 
 void WorkQueue::threadedFunction(){
 
 	currentWorkUnit = NULL;	
+	
 	if(verbose) printf( "WorkQueue::threadedFunction() start processing\n" );
 	setName( "WorkQueue " + ofToString(ID) );
 	startTime = ofGetElapsedTimef();
@@ -114,8 +126,17 @@ void WorkQueue::threadedFunction(){
 	while ( pendingN > 0 && !timeToStop ) {
 		
 		lock();
+			if (pending.size() <= 0){ 
+				unlock();
+				printf("mmmmmmmmmm.......\n");
+				continue;
+			}
 			currentWorkUnit = pending[0];
+			pending.erase( pending.begin() );
 		unlock();
+		
+		//int currID = currentWorkUnit->getID();
+		//printf("currentWorkUnit is %d\n", currID);
 
 		currentWorkUnit->preProcess();
 		if(measureTimes) timeBefore = ofGetElapsedTimef();
@@ -124,26 +145,25 @@ void WorkQueue::threadedFunction(){
 		currentWorkUnit->postProcess();
 		if(measureTimes) updateAverageTimes(timeAfter - timeBefore);
 
-		lock();
-			pending.erase( pending.begin() );
+		lock();			
 			processed.push_back(currentWorkUnit);
-			currentWorkUnit = NULL;	
 			pendingN = pending.size();
+			currentWorkUnit = NULL;	
 		unlock();
+		
 		if(verbose) printf("WorkQueue::threadedFunction() looping, %d left to process\n", pendingN);
 	}
-		
-	if (verbose) printf("WorkQueue::threadedFunction() ended processing %f\n", ofGetElapsedTimef() - startTime );
-
+	
 	if (askedToJoin){
 		askedToJoin = false;
 		if (verbose) printf("WorkQueue::Asked to join WorkQueue, ending threadedMethod!\n");
 		return;
 	}
+	
 	if (!timeToStop){
 		if (verbose) printf("WorkQueue::Detaching WorkQueue thread!\n");
 		stopThread(true);		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared. 
-						//If not detached or joined with, it takes resources... neat, uh?
+								//If not detached or joined with, it takes resources... neat, uh?
 	}
 };
 
@@ -173,9 +193,11 @@ vector<int> WorkQueue::getPendingIDs(){
 float WorkQueue::getCurrentWorkUnitPercentDone(){
 
 	float d = 0.0f;
+	lock();
 	if (currentWorkUnit != NULL){
 		d = currentWorkUnit->getPercentDone();
 	}
+	unlock();
 	return d;
 }
 
@@ -183,73 +205,88 @@ int WorkQueue::getPendingQueueLength(){
 	lock();
 		int l = pending.size();
 	unlock();
+	if (verbose) printf("getPendingQueueLength() >> %d\n",l);
 	return l;
 }
 
 int WorkQueue::getProcessedQueueLength(){
 	lock();
-		int l = processed.size();
+		int l = processed.size();		
 	unlock();
+	if (verbose) printf("getProcessedQueueLength() >> %d\n",l);
 	return l;
+}
+
+void WorkQueue::update(){
+
+	if ( !isThreadRunning() ){
+		int l = pending.size();
+		if ( l > 0 ){ // make sure the thread is started if there's work to do
+			startThread(true, false);
+		}
+	}
 }
 
 void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 
-	int xOff = 0;
 	int w = tileW;
 	int h = WORK_UNIT_DRAW_H;
 	int gap = 8;
-	int tOffx = 0;
-	//int nl = queueName.size();
-	//int unitGap = 1;
-	
-	
+	int off = 0;
+	int j;		
 	string time;
 
 	if (measureTimes){
-		time = ofToString(1000 * avgTimePerUnit,1) + "ms";
+		time = ofToString(1000.0f * avgTimePerUnit, 1) + "ms";
 	}
 	
 	ofSetColor(255,255,255);
 	if (queueID != -1){
 		char aux[10];
-		int l = sprintf(aux, "%d", queueID);
-		sprintf(aux, "%02d", queueID);	//force 2 digits for ID 
-		xOff = ( TEXT_DRAW_WIDTH ) ;
-		ofDrawBitmapString( queueName + " " +  aux , tOffx,  /*2 * h  + */ h * 0.6);
+		int l = sprintf(aux, "%02d", queueID);	//force 2 digits for ID 
+		ofDrawBitmapString( queueName + " " +  aux , 0.0f,  /*2 * h  + */ h * 0.6f);
 	}else{
-		xOff = ( TEXT_DRAW_WIDTH  ) ;
-		ofDrawBitmapString( queueName + " (" + ofToString(pending.size()) + ")", tOffx,  /* 2 * h + */ h * 0.6);
+		ofDrawBitmapString( queueName + " (" + ofToString(pending.size()) + ")", 0.0f,  /* 2 * h + */ h * 0.6f);
 	}
 
-	//lock();
-	int j;
-	int proc = processed.size();
-	for (j = 0; j< proc ; j++){
-		processed[j]->draw( gap + xOff + w * j, /*2 * h*/0, tileW, drawIDs);
+	lock();	
+		if (currentWorkUnit != NULL) off = 1;
+		int proc = processed.size();
+		
+		for (j = 0; j< proc ; j++){
+			GenericWorkUnit* wu = processed[j];
+			wu->draw( gap + TEXT_DRAW_WIDTH + w * (j), /*2 * h*/0.0f, tileW, drawIDs);
+		}
+
+		if (currentWorkUnit != NULL){
+			currentWorkUnit->draw(gap + TEXT_DRAW_WIDTH + w * j , /*2 * h*/0.0f, tileW, drawIDs);
+		}
+
+		int pend = pending.size();
+		if ( pend > MAX_PENDING_ON_SCREEN ) {
+			pend = MAX_PENDING_ON_SCREEN;
+		}
+		
+		for (j = 0; j< pend ; j++){
+			GenericWorkUnit* wu = pending[j];
+			wu->draw( gap + TEXT_DRAW_WIDTH + w * (off + j), /*2 * h*/0, tileW, drawIDs );
+		}
+	unlock();
+	
+	if ( pend == MAX_PENDING_ON_SCREEN ){	//indicate there's more coming...
+		j++;
+		glColor4ub(64, 64, 64, 128);
+		ofRect( gap + TEXT_DRAW_WIDTH + w * j , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		j++;
+		glColor4ub(64, 64, 64, 100);
+		ofRect( gap + TEXT_DRAW_WIDTH + w * j , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		j++;
+		glColor4ub(64, 64, 64, 70);
+		ofRect( gap + TEXT_DRAW_WIDTH + w * j , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 	}
 
-	int pend = pending.size();
-	if (pend > MAX_PENDING_ON_SCREEN ) pend = MAX_PENDING_ON_SCREEN;
-	
-	for (j = 0; j< pend ; j++){
-		pending[j]->draw(gap + xOff + w * j, /*2 * h*/0, tileW, drawIDs);		
-	}
-	if (pend == MAX_PENDING_ON_SCREEN){	//indicate there's more coming...
-		glColor4f(0.5, 0.5, 0.5, 0.33);
-		ofRect( gap + xOff + w * j , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
-		j++;
-		glColor4f(0.5, 0.5, 0.5, 0.22);
-		ofRect( gap + xOff + w * j , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
-		j++;
-		glColor4f(0.5, 0.5, 0.5, 0.11);
-		ofRect( gap + xOff + w * j , 0 , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
-		j++;
-	}
-	//unlock();
-	
-	if (j > 0 && measureTimes ){
+	if ( j > 0 && measureTimes ){
 		ofSetColor(128,128,128);
-		ofDrawBitmapString( time , gap + xOff + 5 + w * j + w * 0.15, /*2 * h + */ h - h * 0.33);
+		ofDrawBitmapString( time , gap + TEXT_DRAW_WIDTH + 5.0f + w * (off + j) + w * 0.15f, /*2 * h + */ h - h * 0.33f);
 	}
 }
