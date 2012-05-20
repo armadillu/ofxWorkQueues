@@ -49,7 +49,7 @@ void GenericWorkUnit::draw(int x, int y, int tileW, bool drawIDs){
 		ofLine(x + w, y, x , y + h);
 	}
 	if (highPriority){
-		ofSetColor(255,128,0);
+		ofSetColor(200,100,0);
 		ofTriangle(x + w - WORK_UNIT_DRAW_H * HIGH_PRIORITY_MARK_SIZE, y, 
 				   x + w, y, 
 				   x + w, y + WORK_UNIT_DRAW_H * HIGH_PRIORITY_MARK_SIZE );

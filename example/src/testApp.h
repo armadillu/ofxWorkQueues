@@ -32,10 +32,6 @@ class testApp : public ofBaseApp{
 		DedicatedMultiQueue * q2;	// N balanced WorkQueues, N threads. If queue is not empty, only N threads spawned.
 		DetachThreadQueue * q3;		// N jobs processed concurrently, spawns 1 new thread per job
 	
-		int processedInWorkQueue;
-		int processedInDedicatedMultiQueue;
-		int processedInDetachThreadQueue;
-
 };
 
 #endif

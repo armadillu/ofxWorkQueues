@@ -5,6 +5,7 @@ int howManyPerCycle = 3;			//num threads to distribute the jobs on (per demoed s
 int maxPending = 10;				//how many work units can there be pending on the queue (buffer length)
 int maxFactorialToCalculate = 30;
 bool verbose = false;
+bool measureTimes = true;
 
 void testApp::setup(){	
 
@@ -15,26 +16,22 @@ void testApp::setup(){
 	
 	q1 = new WorkQueue();		// A queue of work units, one processed after each other ( 1 thread )
 	q1->setVerbose(verbose);
-	q1->setMeasureTimes(true);			//measure how long each job takes, and draw the average 
+	q1->setMeasureTimes(measureTimes);	//measure how long each job takes, and draw the average 
 	q1->setMaxQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	
-	q2 = new DedicatedMultiQueue(howManyPerCycle );	// N balanced WorkQueues, N threads. If queue is never empty (there's always jobs to do), only N threads spawned ever.
+	q2 = new DedicatedMultiQueue(howManyPerCycle);	// N balanced WorkQueues, N threads. If queue is never empty (there's always jobs to do), only N threads spawned ever.
 	q2->setVerbose(verbose);
-	q2->setMeasureTimes(true);					//measure how long each job takes, and draw the average 
-	q2->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispathing. Low numbers make it faster, but takes more cpu
+	q2->setMeasureTimes(measureTimes);			//measure how long each job takes, and draw the average 
+	q2->setRestTimeMillis(10);					//how much the dispatcher sleeps after each dispathing. Low numbers make it faster, but takes more cpu
 	q2->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	q2->setIndividualWorkerQueueMaxLen(3);		//how many work units each thread queue can have
 	
 	q3 = new DetachThreadQueue();	// N jobs processed concurrently, spawns a new thread per job
 	q3->setVerbose(verbose);
-	q3->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispathing
+	q3->setRestTimeMillis(10);					//how much the dispatcher sleeps after each dispathing
 	q3->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	q3->setMaxJobsAtATime(howManyPerCycle);		//how many jobs to process at a time (threads)
 	
-	//counters of processed jobs for each queue
-	processedInWorkQueue = 0;
-	processedInDedicatedMultiQueue = 0;
-	processedInDetachThreadQueue = 0;
 }
 
 
@@ -121,8 +118,6 @@ void testApp::addWorkUnitToWorkQueue(bool highPriority){
 	bool didAdd = q1->addWorkUnit(w1, highPriority);
 	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
 		delete w1;	
-	}else{
-		processedInWorkQueue++;
 	}
 }
 
@@ -132,8 +127,6 @@ void testApp::addWorkUnitToDedicatedMultiQueue(bool highPriority){
 	bool didAdd = q2->addWorkUnit(w2, highPriority);
 	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
 		delete w2;
-	}else{
-		processedInDedicatedMultiQueue++;
 	}
 }
 
@@ -143,11 +136,8 @@ void testApp::addWorkUnitToDetachThreadQueue(bool highPriority){
 	bool didAdd = q3->addWorkUnit(w3, highPriority);
 	if ( !didAdd ){	//if work unit was rejected (queue full), delete it
 		delete w3;
-	}else{
-		processedInDetachThreadQueue++;
 	}
 }
-
 
 void testApp::keyPressed(int key){
 
