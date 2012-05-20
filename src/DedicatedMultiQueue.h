@@ -37,7 +37,8 @@ class DedicatedMultiQueue : public ofAdvancedThread{
 		void setMaxPendingQueueLength(int l){ maxPendingQueueLength = l; }
 		void setMeasureTimes(bool m);
 		void setNumWorkers(int num);	//use with caution, wont drop queues if u try decreasing! TODO!!
-		
+		void setThreadPriority( int p );		// this will set the p of all the queues and the dispatcher thread
+	
 		void join();	//experimental!
 
 		int getPendingQueueLength();
@@ -55,11 +56,12 @@ class DedicatedMultiQueue : public ofAdvancedThread{
 		int								restTime;
 		int								maxWorkerQueueLen;
 		int								maxPendingQueueLength;
-		float								t;
 	
 		bool							timeToStop;
 		bool							verbose;
 		bool							measureTime;
+	
+		int								priority;
 
 		void updateQueues();
 		int shortestWorkQueue();

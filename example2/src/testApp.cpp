@@ -2,7 +2,7 @@
 #include "BlurWorkUnit.h"
 
 
-int numThreads = 3;			//num threads to distribute the jobs on
+int numThreads = 20;			//num threads to distribute the jobs on
 
 void testApp::setup(){	
 
@@ -16,14 +16,14 @@ void testApp::setup(){
 	
 	vidGrabber.initGrabber(camWidth,camHeight);
 
-	q = new DedicatedMultiQueue(numThreads );	// N balanced WorkQueues, N threads. If queue is never empty (always work to do), only N threads spawned.
+	q = new DedicatedMultiQueue( numThreads );	// N balanced WorkQueues, N threads. If queue is never empty (always work to do), only N threads spawned.
 	//q->setVerbose(true);
 	q->setMeasureTimes(true);
-	q->setRestTimeMillis(numThreads);	//how much the dispatcher sleeps after each dispathing
+	q->setRestTimeMillis(1);	//how much the dispatcher sleeps after each dispathing
 	
 	//buffer lengths. For realtime stuff you might want to keep as small as possible
-	q->setMaxPendingQueueLength( 1 );	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected (Drop frame)
-	q->setIndividualWorkerQueueMaxLen(1);	//N work units buffered per queue. This length is critical to keep images "sorted"
+	q->setMaxPendingQueueLength( 10 );	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected (Drop frame)
+	q->setIndividualWorkerQueueMaxLen(10);	//N work units buffered per queue. This length is critical to keep images "sorted"
 	
 	blurredImage.allocate(camWidth, camHeight);
 }
@@ -58,14 +58,16 @@ void testApp::draw(){
 	glColor3ub(255,255,255);
 	vidGrabber.draw(0,0);
 	blurredImage.draw(camWidth, 0);
+	glColor4ub(255,255,255, 32);
+	vidGrabber.draw(camWidth,0);
 	
 	glColor3ub(255,0,0);
 	ofDrawBitmapString( ofToString( ofGetFrameRate(), 2), 10, 15);
 	
 	glTranslatef(20, 520, 0); //move below cam image to draw queue
 	
-	int cellWidth = 40;		//width of each cell
-	bool drawID = true;	//draw the ID on top of the cell
+	int cellWidth = 10;		//width of each cell
+	bool drawID = false;	//draw the ID on top of the cell
 	
 	q->draw(cellWidth, drawID);
 }

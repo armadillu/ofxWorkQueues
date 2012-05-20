@@ -23,4 +23,17 @@ class ofAdvancedThread : public ofThread{
 		#endif
 	}
 
+	
+	void setPriority( int priority ){
+		#ifndef TARGET_WIN32 	
+		int p = ofClamp( priority, sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+		struct sched_param param;	
+		param.sched_priority = p;	
+		if( pthread_setschedparam( myThread, SCHED_OTHER, &param) != 0 ){
+			if (verbose) printf("Error setting pthread priority\n");
+		}else{
+			if (verbose) printf("setting thread priority to %d\n", p);
+		}
+		#endif
+	}
 };

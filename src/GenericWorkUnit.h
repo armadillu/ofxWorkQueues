@@ -19,7 +19,7 @@
 
 #define TILE_DRAW_SPACING		8.0f
 #define TEXT_DRAW_WIDTH			75.0f
-#define HIGH_PRIORITY_MARK_SIZE	0.25f
+#define HIGH_PRIORITY_MARK_SIZE	0.2f
 #define BITMAP_MSG_HEIGHT		0.7
 
 #define MAX_PENDING_ON_SCREEN	50
@@ -40,25 +40,29 @@ class GenericWorkUnit : public ofAdvancedThread{	//subclass this object to accom
 		void cancel();				//flags the thread to stop its work, call this if you want to stop early
 
 		virtual void process();		//subclass this method to do your work! <<<<<<<<<
-		void preProcess();	
-		void postProcess();		
-		
+			
 		inline float getPercentDone(){ return processPercent;}
-		inline void setPercentDone(float pct){ processPercent = pct;}
 		WorkUnitStatus getStatus(){ return status;}
 		int getID(){ return ID; }
 			
-		void setVerbose(bool b){ debug = b; }
-		virtual void setGLColorAccordingToStatus();
-	
+		void setVerbose(bool b){ debug = b; }	
 		virtual void draw(int x, int y, int tileW, bool drawIDs);
 		
 	protected:
 
 		WorkUnitStatus		status;			
 		int					ID;				// grows automatically for each created GenericWorkUnit
+	
+		void				setStatusFailed(){ status = FAILED; }
+		bool				isJobPendingCancelation(){ return status == PENDING_CANCELLATION; }
 
+		virtual void		setGLColorAccordingToStatus();
+		inline void			setPercentDone(float pct){ processPercent = pct;}
+	
 	private:
+
+		void				preProcess();	
+		void				postProcess();		
 
 		void				setIsHighPriority(){ highPriority = true; }
 		bool				isHighPriority(){ return highPriority; }

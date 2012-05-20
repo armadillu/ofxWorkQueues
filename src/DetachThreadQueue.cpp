@@ -15,6 +15,7 @@ DetachThreadQueue::DetachThreadQueue(){
 	timeToStop = false;
 	verbose = false;
 	maxPendingQueueLength = 100;
+	priority = 44;
 }
 
 
@@ -53,6 +54,12 @@ DetachThreadQueue::~DetachThreadQueue(){
 }
 
 
+void DetachThreadQueue::setPriority( int p ){
+	//printf("%d %d\n", sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+	priority = ofClamp(p, sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+	//printf("%d\n", priority);	
+}
+
 
 bool DetachThreadQueue::addWorkUnit(GenericWorkUnit* job, bool highPriority){
 
@@ -83,7 +90,7 @@ bool DetachThreadQueue::addWorkUnit(GenericWorkUnit* job, bool highPriority){
 void DetachThreadQueue::draw( int tileW, bool drawIDs ){
 		
 	ofSetColor(255,0,0);
-	int xOff = 0;
+	//int xOff = 0;
 	int w = tileW;
 	int gap = TILE_DRAW_SPACING;
 	int h = WORK_UNIT_DRAW_H;	
@@ -171,30 +178,29 @@ void DetachThreadQueue::threadedFunction(){
 	
 	while( ( nPending > 0 || nProcessing > 0 ) && !timeToStop ){
 
-		if ( nPending > 0 && nProcessing < maxProcessing ){
-
-			lock();
-				GenericWorkUnit * w = pending[0];
-				pending.erase( pending.begin() );
-			unlock();
-
-			w->processInThread();
-
-			lock();
-				processing.push_back(w);
-			unlock();
-			
-		}else{
-			//printf(".");
-			ofSleepMillis(restTime);
-		}
-
-		updateQueues();
-		
+		bool needToRest = false;
 		lock();
 			nPending = pending.size();
 			nProcessing = processing.size();
+
+			if ( nPending > 0 && nProcessing < maxProcessing ){
+
+					GenericWorkUnit * w = pending[0];
+					pending.erase( pending.begin() );
+
+					w->processInThread();
+				
+					processing.push_back(w);			
+				
+			}else{
+				needToRest = true;				
+			}
 		unlock();
+		
+		updateQueues();
+		
+		if (needToRest) ofSleepMillis(restTime);
+
 	}
 	
 	if(verbose) printf("DetachThreadQueue::threadedFunction() end processing %f\n", ofGetElapsedTimef() );

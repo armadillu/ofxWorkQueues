@@ -1,9 +1,10 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int howManyPerCycle = 3;			//num threads to distribute the jobs on
-int maxPending = 60;				//how many work units can there be pending on the queue (buffer length)
+int howManyPerCycle = 3;			//num threads to distribute the jobs on (per demoed structure)
+int maxPending = 10;				//how many work units can there be pending on the queue (buffer length)
 int maxFactorialToCalculate = 30;
+bool verbose = false;
 
 void testApp::setup(){	
 
@@ -13,19 +14,19 @@ void testApp::setup(){
 	ofSetVerticalSync(true);
 	
 	q1 = new WorkQueue();		// A queue of work units, one processed after each other ( 1 thread )
-	//q1->setVerbose(true);
+	q1->setVerbose(verbose);
 	q1->setMeasureTimes(true);			//measure how long each job takes, and draw the average 
 	q1->setMaxQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	
 	q2 = new DedicatedMultiQueue(howManyPerCycle );	// N balanced WorkQueues, N threads. If queue is never empty (there's always jobs to do), only N threads spawned ever.
-	//q2->setVerbose(true);
+	q2->setVerbose(verbose);
 	q2->setMeasureTimes(true);					//measure how long each job takes, and draw the average 
 	q2->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispathing. Low numbers make it faster, but takes more cpu
 	q2->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
-	q2->setIndividualWorkerQueueMaxLen(10);		//how many work units each thread queue can have
+	q2->setIndividualWorkerQueueMaxLen(3);		//how many work units each thread queue can have
 	
 	q3 = new DetachThreadQueue();	// N jobs processed concurrently, spawns a new thread per job
-	//q3->setVerbose(true);
+	q3->setVerbose(verbose);
 	q3->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispathing
 	q3->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	q3->setMaxJobsAtATime(howManyPerCycle);		//how many jobs to process at a time (threads)
@@ -42,7 +43,6 @@ void testApp::update(){
 	q1->update();
 	q2->update();
 	q3->update();
-	
 
 	//################################## Work Queue ##############################################
 	
@@ -54,7 +54,7 @@ void testApp::update(){
 
 	if ( wr1 != NULL ){	//we got a result from the queue!
 		MyWorkUnit * wu1 = (MyWorkUnit*)wr1; //force a cast to our WorkUnit Type
-		cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+		if(verbose) cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
 		delete wr1; //once we got our result, delete the work unit that was holding it
 	}
 	
@@ -68,7 +68,7 @@ void testApp::update(){
 	GenericWorkUnit * wr2 = q2->retrieveNextProcessedUnit();
 	if (wr2 != NULL){
 		MyWorkUnit * wu1 = (MyWorkUnit*)wr2; //force a cast to our WorkUnit Type
-		cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+		if(verbose) cout <<"## got result for operation (" << wu1->getID() << ") DedicatedMultiQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
 		delete wr2; //once we got our result, delete the work unit that was holding it
 	}
 
@@ -82,10 +82,9 @@ void testApp::update(){
 	GenericWorkUnit * wr3 = q3->retrieveNextProcessedUnit();
 	if (wr3 != NULL){
 		MyWorkUnit * wu1 = (MyWorkUnit*)wr3; //force a cast to our WorkUnit Type
-		cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+		if(verbose) cout <<"## got result for operation (" << wu1->getID() << ") DetachThreadQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
 		delete wr3; //once we got our result, delete the work unit that was holding it
 	}
-	
 }
 
 

@@ -23,8 +23,10 @@ DedicatedMultiQueue::DedicatedMultiQueue( int numWorkers_ ){
 		wq->setQueueName(WORKER_NAMES);
 		//wq->setVerbose(true);
 		workers.push_back( wq );
-		
+		//workers[i]->setThreadPriority(priority);
 	}
+	setThreadPriority(47);
+
 }
 
 DedicatedMultiQueue::~DedicatedMultiQueue(){
@@ -40,6 +42,7 @@ DedicatedMultiQueue::~DedicatedMultiQueue(){
 	}
 	
 	if(verbose) printf("DedicatedMultiQueue::~DedicatedMultiQueue() deleting pending and processed work units...\n");
+	lock();
 	while ( pending.size() > 0 ){		
 		GenericWorkUnit * w = pending[0];
 		pending.erase( pending.begin() );
@@ -50,7 +53,18 @@ DedicatedMultiQueue::~DedicatedMultiQueue(){
 		processed.erase( processed.begin() );
 		delete w;
 	}
+	unlock();
 	if(verbose) printf("~DedicatedMultiQueue done!\n");
+}
+
+
+void DedicatedMultiQueue::setThreadPriority( int p ){
+	//printf("%d %d\n", sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+	priority = ofClamp(p, sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+	//printf("%d\n", priority);		
+	for (int i = 0; i < numWorkers; i++){
+		workers[i]->setThreadPriority(priority);
+	}
 }
 
 
@@ -69,6 +83,7 @@ void DedicatedMultiQueue::setNumWorkers(int num){
 		setMeasureTimes(measureTime);	//extend our time measure setting to our new monkeys					
 	}
 }
+
 
 void DedicatedMultiQueue::setMeasureTimes(bool m){
 	measureTime = m;
@@ -134,7 +149,6 @@ void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDi
 			
 		glPushMatrix();
 			
-			int xOff = 0;
 			int w = tileW;
 			int gap = TILE_DRAW_SPACING;
 			int h = WORK_UNIT_DRAW_H ;
@@ -212,7 +226,6 @@ void DedicatedMultiQueue::threadedFunction(){
 
 	int nPending = getPendingQueueLength();
 	if(verbose) printf("DedicatedMultiQueue::threadedFunction() start processing\n");
-	t = ofGetElapsedTimef();
 	setName("DedicatedMultiQueue Manager");
 	int stillWorking = 0;
 	
@@ -251,12 +264,7 @@ void DedicatedMultiQueue::threadedFunction(){
 	}
 	
 	updateQueues();
-	
-	if (verbose){ 
-		t = ofGetElapsedTimef() - t;
-		printf("DedicatedMultiQueue::threadedFunction() end processing %f (%d stillWorking)\n", t , stillWorking);
-	}
-	
+		
 	if (!timeToStop){
 		if (verbose) printf("detaching DedicatedMultiQueue thread!\n");
 		stopThread(true);		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared. 

@@ -9,7 +9,7 @@
 int main( int argc, char *argv[] ){
 
     ofAppGlutWindow window;
-	ofSetupOpenGL(&window, 1024,768, OF_WINDOW);			// <-------- setup the GL context
+	ofSetupOpenGL(&window, 800,500, OF_WINDOW);			// <-------- setup the GL context
 
 	ofRunApp( new testApp());
 

@@ -25,8 +25,11 @@ void MyWorkUnit::process(){ //this will be exectued on a non-maon thread, keep t
 		ofSleepMillis(50);							//let's pretend this operation takes a looong time...
 		
 		setPercentDone( (float)(i+1) / input );		//upate this work unit progress in each loop
-		if (status == PENDING_CANCELLATION) return;	//check if we are to stop, to stop if early if required
+		if (isJobPendingCancelation()) return;	//check if we are to stop, to stop if early if required
 	}
+	
+	if ( ofRandom(1.0f) < 0.1 ) setStatusFailed();	//if required, you can mark a WorkUnit as failed.
+	
 	//our processing is done, we should now gather the result from the main thread...
 }
 

@@ -22,6 +22,7 @@ WorkQueue::WorkQueue(){
 	queueName = "q";
 	pending.clear();
 	processed.clear();
+	priority = 44;
 }
 
 WorkQueue::~WorkQueue(){
@@ -31,14 +32,16 @@ WorkQueue::~WorkQueue(){
 	//ofxThread::setVerbose(true);	//thread printing
 	if (isThreadRunning()){
 		if(verbose) printf("WorkQueue::~WorkQueue() waiting for its Queue thread to end...\n");
-		if (currentWorkUnit != NULL)
-			currentWorkUnit->cancel();
-		
+		lock();
+			if (currentWorkUnit != NULL)
+				currentWorkUnit->cancel();
+		unlock();
 		waitForThread(false) ;
 	}
 
 	if(verbose) printf("WorkQueue::~WorkQueue deleting pending (%d) and processed (%d) work units...\n", (int)pending.size(), (int)processed.size() );
 
+	lock();
 	while ( pending.size() > 0 ){		
 		GenericWorkUnit * w = pending[0];
 		if(verbose) printf("WorkQueue::~WorkQueue delete pending work unit %d\n", w->getID());
@@ -52,6 +55,7 @@ WorkQueue::~WorkQueue(){
 		processed.erase( processed.begin() );
 		delete w;
 	}
+	unlock();
 	if(verbose) printf("~WorkQueue() done!\n");
 }
 
@@ -70,7 +74,7 @@ GenericWorkUnit* WorkQueue::retrieveNextProcessedUnit(){
 	GenericWorkUnit * w = NULL;
 	lock();
 	int procS = processed.size();
-	if ( processed.size() > 0){
+	if ( procS > 0){
 		w = processed[0];
 		if(verbose) printf("WorkQueue::retrieveNextProcessedUnit() %d\n", w->getID());
 		processed.erase( processed.begin() );
@@ -84,7 +88,7 @@ bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
 	bool ret = false;
 	if (verbose) printf("WorkQueue::addWorkUnit() trying to add ID = %d\n", job->getID() );			
 	lock();
-		int cl = pending.size();
+	int cl = pending.size();
 		
 		if ( cl < maxQueueLen || ( cl < maxQueueLen * 1.5  && highPriority ) ){ // if job is high priority, give some margin to the max pending queue len restriction
 			if (verbose) printf("WorkQueue::addWorkUnit() added ID = %d\n", job->getID() );
@@ -111,6 +115,17 @@ void WorkQueue::setVerbose(bool v){
 	verbose = v;
 }
 
+void WorkQueue::setThreadPriority( int p ){
+	//printf("%d %d\n", sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+	priority = ofClamp(p, sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+	//printf("%d\n", priority);
+}
+
+void WorkQueue::applyThreadPriority(){
+	setPriority(priority);
+}
+
+
 void WorkQueue::threadedFunction(){
 
 	currentWorkUnit = NULL;	
@@ -123,6 +138,8 @@ void WorkQueue::threadedFunction(){
 
 	float timeBefore, timeAfter;
 
+	applyThreadPriority();
+	
 	while ( pendingN > 0 && !timeToStop ) {
 		
 		lock();
@@ -203,7 +220,7 @@ float WorkQueue::getCurrentWorkUnitPercentDone(){
 
 int WorkQueue::getPendingQueueLength(){
 	lock();
-		int l = pending.size();
+		int l = pending.size() + ((currentWorkUnit != NULL) ? 1 : 0);
 	unlock();
 	if (verbose) printf("getPendingQueueLength() >> %d\n",l);
 	return l;
@@ -233,7 +250,7 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 	int h = WORK_UNIT_DRAW_H;
 	int gap = 8;
 	int off = 0;
-	int j;		
+	int j;	
 	string time;
 
 	if (measureTimes){
@@ -243,7 +260,7 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 	ofSetColor(255,255,255);
 	if (queueID != -1){
 		char aux[10];
-		int l = sprintf(aux, "%02d", queueID);	//force 2 digits for ID 
+		sprintf(aux, "%02d", queueID);	//force 2 digits for ID 
 		ofDrawBitmapString( queueName + " " +  aux , 0.0f,  /*2 * h  + */ h * BITMAP_MSG_HEIGHT);
 	}else{
 		ofDrawBitmapString( queueName + " (" + ofToString(pending.size()) + ")", 0.0f,  /* 2 * h + */ h * BITMAP_MSG_HEIGHT);
@@ -258,35 +275,34 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 			wu->draw( gap + TEXT_DRAW_WIDTH + w * (j), /*2 * h*/0.0f, tileW, drawIDs);
 		}
 
-		if (currentWorkUnit != NULL){
+		if (currentWorkUnit != NULL){			
 			currentWorkUnit->draw(gap + TEXT_DRAW_WIDTH + w * j , /*2 * h*/0.0f, tileW, drawIDs);
 		}
-
 		int pend = pending.size();
 		if ( pend > MAX_PENDING_ON_SCREEN ) {
 			pend = MAX_PENDING_ON_SCREEN;
 		}
-		
+		int k = j;
 		for (j = 0; j< pend ; j++){
 			GenericWorkUnit* wu = pending[j];
-			wu->draw( gap + TEXT_DRAW_WIDTH + w * (off + j), /*2 * h*/0, tileW, drawIDs );
+			wu->draw( gap + TEXT_DRAW_WIDTH + w * (off + j + k), /*2 * h*/0, tileW, drawIDs );
 		}
 	unlock();
 	
 	if ( pend == MAX_PENDING_ON_SCREEN ){	//indicate there's more coming...
-		j++;
 		glColor4ub(64, 64, 64, 128);
-		ofRect( gap + TEXT_DRAW_WIDTH + w * j , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		ofRect( gap + TEXT_DRAW_WIDTH + w * (off + j + k) , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 		j++;
 		glColor4ub(64, 64, 64, 100);
-		ofRect( gap + TEXT_DRAW_WIDTH + w * j , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		ofRect( gap + TEXT_DRAW_WIDTH + w * (off + j + k) , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
 		j++;
 		glColor4ub(64, 64, 64, 70);
-		ofRect( gap + TEXT_DRAW_WIDTH + w * j , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		ofRect( gap + TEXT_DRAW_WIDTH + w * (off + j + k) , 0.0f , tileW - TILE_DRAW_GAP_H , WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V);
+		j++;
 	}
 
-	if ( j > 0 && measureTimes ){
+	if ( k + j + off > 0 && measureTimes ){
 		ofSetColor(128,128,128);
-		ofDrawBitmapString( time , gap + TEXT_DRAW_WIDTH + 5.0f + w * (off + j) + w * 0.15f, /*2 * h + */ h - h * (1.0f- BITMAP_MSG_HEIGHT));
+		ofDrawBitmapString( time , gap + TEXT_DRAW_WIDTH + 5.0f + w * (off + k + j) + w * 0.15f, /*2 * h + */ h - h * (1.0f- BITMAP_MSG_HEIGHT));
 	}
 }

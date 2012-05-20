@@ -31,33 +31,32 @@ void GenericWorkUnit::cancel(){
 
 void GenericWorkUnit::draw(int x, int y, int tileW, bool drawIDs){
 
-	ofSetColor(0,200,0);
 	setGLColorAccordingToStatus();
 	float w = tileW - TILE_DRAW_GAP_H;
 	float h = WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V;
 	ofRect( x, y, w, h );
 		
 	if (status == PROCESSING){
-		float hh = 0.2;
+		float hh = 0.15;
 		ofSetColor(0,0,0);
 		ofRect( x, y + (h) * (1-hh) , w,  hh * (h)  );
 		ofSetColor(0,200,0);		
 		ofRect( x, y + (h) * (1-hh) , (w) * processPercent , (h) * hh  );
-	}
+	}else
 	if (status == FAILED){
 		ofSetColor(255,0,0);
 		ofLine(x, y, x + tileW- TILE_DRAW_GAP_H, y + h);
 		ofLine(x + w, y, x , y + h);
 	}
 	if (highPriority){
-		ofSetColor(255, 128, 0, 128);
+		ofSetColor(255,128,0);
 		ofTriangle(x + w - WORK_UNIT_DRAW_H * HIGH_PRIORITY_MARK_SIZE, y, 
 				   x + w, y, 
 				   x + w, y + WORK_UNIT_DRAW_H * HIGH_PRIORITY_MARK_SIZE );
 	}
 	if (drawIDs){
-		ofSetColor(255,255,255);
-		ofDrawBitmapString( ofToString( ID ), x + tileW * 0.15f,  y +  h * BITMAP_MSG_HEIGHT);
+		glColor4ub(255,255,255, 255);
+		ofDrawBitmapString( ofToString( ID ), x + tileW * 0.15f,  y +  WORK_UNIT_DRAW_H * BITMAP_MSG_HEIGHT);
 	}
 }
 

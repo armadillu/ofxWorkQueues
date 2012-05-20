@@ -36,6 +36,8 @@ class DetachThreadQueue : public ofAdvancedThread{
 		int getPendingQueueLength();
 		int getProcessingQueueLength();
 		int getProcessedQueueLength();
+	
+		void setPriority( int p ); // this will set the p of all the queues and the dispatcher thread
 
 	private:
 
@@ -50,6 +52,8 @@ class DetachThreadQueue : public ofAdvancedThread{
 		int							maxProcessing;
 		int							restTime;
 		int							maxPendingQueueLength;
+	
+		int							priority;
 	
 		bool						timeToStop;
 		bool						verbose;
