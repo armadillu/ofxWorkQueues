@@ -47,12 +47,14 @@ void testApp::update(){
 	addWorkUnitToWorkQueue(false);
 	
 	//then, keep trying to collect results.....
+	if (q1->getProcessedQueueLength() > 3){
 	GenericWorkUnit * wr1 = q1->retrieveNextProcessedUnit();
 
 	if ( wr1 != NULL ){	//we got a result from the queue!
 		MyWorkUnit * wu1 = (MyWorkUnit*)wr1; //force a cast to our WorkUnit Type
 		if(verbose) cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
 		delete wr1; //once we got our result, delete the work unit that was holding it
+	}
 	}
 	
 	

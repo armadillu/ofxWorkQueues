@@ -108,7 +108,7 @@ bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
 }
 
 void WorkQueue::updateAverageTimes(float lastTime){
-	avgTimePerUnit = 0.2 * lastTime + 0.8 * avgTimePerUnit;
+	avgTimePerUnit = 0.95 * lastTime + 0.05 * avgTimePerUnit;
 }
 
 void WorkQueue::setVerbose(bool v){ 
@@ -134,7 +134,7 @@ void WorkQueue::threadedFunction(){
 	setName( "WorkQueue " + ofToString(ID) );
 	startTime = ofGetElapsedTimef();
 	
-	int pendingN = 1; //we lie here, but its ok, less locking. Should be getPendingQueueLength();
+	pendingN = 1; //we lie here, but its ok, less locking. Should be getPendingQueueLength();
 
 	float timeBefore, timeAfter;
 
@@ -143,7 +143,8 @@ void WorkQueue::threadedFunction(){
 	while ( pendingN > 0 && !timeToStop ) {
 		
 		lock();
-			if (pending.size() <= 0){ 
+			pendingN = pending.size();
+			if ( pendingN <= 0 ){ 
 				unlock();
 				printf("mmmmmmmmmm.......\n");
 				continue;
@@ -237,8 +238,8 @@ int WorkQueue::getProcessedQueueLength(){
 void WorkQueue::update(){
 
 	if ( !isThreadRunning() ){
-		int l = pending.size();
-		if ( l > 0 ){ // make sure the thread is started if there's work to do
+		pendingN = pending.size();
+		if ( pendingN > 0 ){ // make sure the thread is started if there's work to do
 			startThread(true, false);
 		}
 	}

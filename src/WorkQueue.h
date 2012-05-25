@@ -35,6 +35,7 @@ class WorkQueue : public ofAdvancedThread{	//subclass the WorkQueue object to ac
 		vector<int> getProcessedIDs();
 		vector<int> getPendingIDs();
 	
+		int getAproxPendingQueueLength(){ return pendingN; } //not to be trusted, will give a loose result, but will not lock so should be faster
 		int getPendingQueueLength();
 		int getProcessedQueueLength();
 		void setVerbose(bool v);
@@ -51,6 +52,7 @@ class WorkQueue : public ofAdvancedThread{	//subclass the WorkQueue object to ac
 	
 		int								ID;
 		int								maxQueueLen;
+		int								pendingN;
 	
 		bool							timeToStop;
 		bool							askedToJoin;

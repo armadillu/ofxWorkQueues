@@ -36,19 +36,19 @@ void GenericWorkUnit::draw(int x, int y, int tileW, bool drawIDs){
 	float h = WORK_UNIT_DRAW_H - TILE_DRAW_GAP_V;
 	ofRect( x, y, w, h );
 		
-	if (status == PROCESSING){
+	if (status == PROCESSING){ //draw progress bar
 		float hh = 0.15;
 		ofSetColor(0,0,0);
 		ofRect( x, y + (h) * (1-hh) , w,  hh * (h)  );
 		ofSetColor(0,200,0);		
 		ofRect( x, y + (h) * (1-hh) , (w) * processPercent , (h) * hh  );
 	}else
-	if (status == FAILED){
+	if (status == FAILED){ //draw red cross
 		ofSetColor(255,0,0);
 		ofLine(x, y, x + tileW- TILE_DRAW_GAP_H, y + h);
 		ofLine(x + w, y, x , y + h);
 	}
-	if (highPriority){
+	if (highPriority){	//mark visually, orange triangle top right
 		ofSetColor(200,100,0);
 		ofTriangle(x + w - WORK_UNIT_DRAW_H * HIGH_PRIORITY_MARK_SIZE, y, 
 				   x + w, y, 
@@ -72,7 +72,7 @@ void GenericWorkUnit::setGLColorAccordingToStatus(){
 		case PROCESSED: ofSetColor(0,200,0); break;
 		case PENDING_CANCELLATION: ofSetColor(255,255,0); break;
 		case CANCELLED: ofSetColor(255,128,0); break;
-		case FAILED: ofSetColor(50,50,50); break;
+		case FAILED: ofSetColor(100,50,50); break;
 		default: ofSetColor(128,128,128); break;
 	}
 }
