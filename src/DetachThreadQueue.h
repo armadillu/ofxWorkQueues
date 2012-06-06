@@ -23,7 +23,7 @@ class DetachThreadQueue : public ofAdvancedThread{
 		DetachThreadQueue();
 		~DetachThreadQueue();
 		
-		void draw( int tileW = 24, bool drawIDs = false );
+		void draw( int x, int y, int tileW = 24, bool drawIDs = false );
 		void update();
 		bool addWorkUnit(GenericWorkUnit* job, bool highPriority = false);
 		GenericWorkUnit* retrieveNextProcessedUnit();

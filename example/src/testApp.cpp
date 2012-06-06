@@ -91,19 +91,15 @@ void testApp::draw(){
 	
 	glColor3ub(255,0,0);
 	ofDrawBitmapString( ofToString( ofGetFrameRate(), 2), 10, 10);
-
-	glTranslatef(20, 60, 0);
 	
 	int cellWidth = 10;		//width of each cell
 	bool drawID = false;	//draw each job's ID on top of its cell
 	
-	q1->draw(cellWidth, drawID);
+	q1->draw(30,30,cellWidth, drawID);
 	
-	glTranslatef(0,70,0);
-	q2->draw(cellWidth, drawID);
+	q2->draw(30, 100, cellWidth, drawID);
 	
-	glTranslatef(0, 70 + 20 * (howManyPerCycle + 1), 0);
-	q3->draw(cellWidth, drawID);
+	q3->draw(30, 140 + 20 * (howManyPerCycle + 1), cellWidth, drawID);
 }
 
 

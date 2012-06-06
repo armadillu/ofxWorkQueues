@@ -138,7 +138,7 @@ void DedicatedMultiQueue::update(){
 	}
 }
 
-void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDistance){
+void DedicatedMultiQueue::draw( int x, int y, int tileW, bool drawIDs , int maxRows, int colDistance){
 	
 	ofSetColor(255,0,0);
 
@@ -147,8 +147,9 @@ void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDi
 		int pendingN = pending.size();
 		int processedN = processed.size();
 			
-		glPushMatrix();
-			
+		glPushMatrix();	
+			ofTranslate(x, y);
+	
 			int w = tileW;
 			int gap = TILE_DRAW_SPACING;
 			int h = WORK_UNIT_DRAW_H ;
@@ -182,10 +183,7 @@ void DedicatedMultiQueue::draw( int tileW, bool drawIDs , int maxRows, int colDi
 			int c = 0;
 			for (i = 0; i < numWorkers; i++){
 				int yy = i %maxRows;
-				glPushMatrix();
-					glTranslatef(c * colDistance,h + (h) * yy,0);
-					workers[i]->draw(w, drawIDs, i);				
-				glPopMatrix();
+				workers[i]->draw(c * colDistance,h + (h) * yy, w, drawIDs, i);				
 				if ( (1+i)%maxRows == 0){
 					c++;
 				}

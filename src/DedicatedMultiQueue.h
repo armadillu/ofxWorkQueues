@@ -28,7 +28,7 @@ class DedicatedMultiQueue : public ofAdvancedThread{
 		bool addWorkUnit(GenericWorkUnit* job, bool highPriority = false);
 		GenericWorkUnit* retrieveNextProcessedUnit();
 		
-		void draw( int tileW = 24, bool drawIDs = false, int maxRows = 40, int ColDistance = 300);
+		void draw( int x, int y, int tileW = 24, bool drawIDs = false, int maxRows = 40, int ColDistance = 300);
 		void update();
 	
 		void setRestTimeMillis(int millis){ restTime = millis; }

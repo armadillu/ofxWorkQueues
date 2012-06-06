@@ -25,7 +25,7 @@ class WorkQueue : public ofAdvancedThread{	//subclass the WorkQueue object to ac
 		WorkQueue();	
 		~WorkQueue();
 	
-		void draw( int width = 24, bool drawIDs = false, int queueID = -1);
+		void draw( int x, int y, int width = 24, bool drawIDs = false, int queueID = -1);
 		void update();
 	
 		bool addWorkUnit( GenericWorkUnit * job, bool highPriority = false);

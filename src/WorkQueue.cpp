@@ -245,7 +245,7 @@ void WorkQueue::update(){
 	}
 }
 
-void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
+void WorkQueue::draw( int x, int y, int tileW, bool drawIDs, int queueID ){
 
 	int w = tileW;
 	int h = WORK_UNIT_DRAW_H;
@@ -259,6 +259,9 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 	}
 	
 	ofSetColor(255,255,255);
+	ofPushMatrix();
+	ofTranslate(x, y);
+
 	if (queueID != -1){
 		char aux[10];
 		sprintf(aux, "%02d", queueID);	//force 2 digits for ID 
@@ -306,4 +309,5 @@ void WorkQueue::draw( int tileW, bool drawIDs, int queueID ){
 		ofSetColor(128,128,128);
 		ofDrawBitmapString( time , gap + TEXT_DRAW_WIDTH + 5.0f + w * (off + k + j) + w * 0.15f, /*2 * h + */ h - h * (1.0f- BITMAP_MSG_HEIGHT));
 	}
+	ofPopMatrix();
 }
