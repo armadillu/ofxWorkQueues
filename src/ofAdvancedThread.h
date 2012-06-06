@@ -26,7 +26,7 @@ class ofAdvancedThread : public ofThread{
 	
 	void setPriority( int priority ){
 		#ifndef TARGET_WIN32 	
-		#if (OF_VERSION == 7 && OF_VERSION_MINOR == 0) 	 // OF 7.1 moved to poco threads
+		#if (OF_VERSION == 7 && OF_VERSION_MINOR == 0) 	 // OF 7.1 moved to poco threads TODO
 
 			int p = ofClamp( priority, sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
 			struct sched_param param;	
