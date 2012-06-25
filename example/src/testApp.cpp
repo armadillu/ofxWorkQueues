@@ -1,7 +1,7 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int howManyPerCycle = 3;			//num threads to distribute the jobs on (per demoed structure)
+int howManyPerCycle = 2;			//num threads to distribute the jobs on (per demoed structure)
 int maxPending = 10;				//how many work units can there be pending on the queue (buffer length)
 int maxFactorialToCalculate = 30;
 bool verbose = false;

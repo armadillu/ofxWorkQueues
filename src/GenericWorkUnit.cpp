@@ -20,9 +20,6 @@ GenericWorkUnit::GenericWorkUnit(){
 	//printf("new GenericWorkUnit ith ID %d\n", ID);
 }				
 	
-GenericWorkUnit::~GenericWorkUnit(){
-	//printf("~GenericWorkUnit();\n");
-}
 
 void GenericWorkUnit::cancel(){
 	status = PENDING_CANCELLATION;

@@ -35,7 +35,7 @@ class GenericWorkUnit : public ofAdvancedThread{	//subclass this object to accom
 		enum WorkUnitStatus { UNPROCESSED = 0, PROCESSING, PROCESSED, PENDING_CANCELLATION,  CANCELLED, FAILED };
 	
 		GenericWorkUnit();
-		virtual ~GenericWorkUnit();
+		virtual ~GenericWorkUnit(){};
 		void processInThread();		//call this to spawn a thread that will do the work (process()) and clean up after himself
 		void cancel();				//flags the thread to stop its work, call this if you want to stop early
 
