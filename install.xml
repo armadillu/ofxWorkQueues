@@ -1,0 +1,36 @@
+<install>
+	<name>ofxWorkQueues</name>
+    <version>1.0</version>
+    <author><[CDATA[Oriol Ferrer <oriol@uri.cat> ]]></author>
+   
+    <code_url>https://github.com/armadillu/ofxWorkQueues</code_url>
+    <site_url>http://www.uri.cat</site_url>
+    <download_url>https://github.com/armadillu/ofxWorkQueues</download_url>
+   
+    <description><![CDATA[
+          The idea behind this is to easily distribute "splittable" work on as many threads as you need, being able to gather the results from the main thread when ready. Useful on those fancy multi-core computers you can get nowadays.
+    ]]></description>
+    
+	<add>
+		
+		<!-- 	=====================================================================	-->
+		<!--	========================== add per project using this addon =========	-->
+		<!-- 	=====================================================================	-->
+	
+		<src>
+			<folder name="addons/ofxWorkQueues/src">
+				<file>../../../addons/ofxWorkQueues/src/ofAdvancedThread.h</file>
+				<file>../../../addons/ofxWorkQueues/src/WorkQueue.cpp</file>
+				<file>../../../addons/ofxWorkQueues/src/WorkQueue.h</file>
+				<file>../../../addons/ofxWorkQueues/src/GenericWorkUnit.cpp</file>
+				<file>../../../addons/ofxWorkQueues/src/GenericWorkUnit.h</file>
+				<file>../../../addons/ofxWorkQueues/src/DetachThreadQueue.cpp</file>
+				<file>../../../addons/ofxWorkQueues/src/DetachThreadQueue.h</file>
+				<file>../../../addons/ofxWorkQueues/src/DedicatedMultiQueue.cpp</file>
+				<file>../../../addons/ofxWorkQueues/src/DedicatedMultiQueue.h</file>
+			</folder>
+		</src>
+		
+	</add>    
+    
+</install>
