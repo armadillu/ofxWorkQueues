@@ -111,7 +111,7 @@ void GenericWorkUnit::threadedFunction(){
 
 	if (status == PROCESSED || status == FAILED){
 		if(debug) printf("GenericWorkUnit::Detaching Generic Work Unit (%d) thread!\n", ID);
-		stopThread(true);		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared. 
+		stopThread();		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared. 
 						//If not detached or joined with, it takes resources... neat, uh?
 	}else
 		if(debug) printf("GenericWorkUnit::This WorkUnit (%d) was cancelled, thus it's not detached (we will join it in destructor)\n", ID);

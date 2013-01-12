@@ -1,9 +1,9 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int howManyPerCycle = 2;			//num threads to distribute the jobs on (per demoed structure)
-int maxPending = 10;				//how many work units can there be pending on the queue (buffer length)
-int maxFactorialToCalculate = 30;
+int howManyPerCycle = 8;			//num threads to distribute the jobs on (per demoed structure)
+int maxPending = 16;				//how many work units can there be pending on the queue (buffer length)
+int maxFactorialToCalculate = 31;
 bool verbose = false;
 bool measureTimes = true;
 
@@ -22,13 +22,13 @@ void testApp::setup(){
 	q2 = new DedicatedMultiQueue(howManyPerCycle);	// N balanced WorkQueues, N threads. If queue is never empty (there's always jobs to do), only N threads spawned ever.
 	q2->setVerbose(verbose);
 	q2->setMeasureTimes(measureTimes);			//measure how long each job takes, and draw the average 
-	q2->setRestTimeMillis(10);					//how much the dispatcher sleeps after each dispathing. Low numbers make it faster, but takes more cpu
+	q2->setRestTimeMillis(0);					//how much the dispatcher sleeps after each dispathing. Low numbers make it faster, but takes more cpu
 	q2->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	q2->setIndividualWorkerQueueMaxLen(3);		//how many work units each thread queue can have
 	
 	q3 = new DetachThreadQueue();	// N jobs processed concurrently, spawns a new thread per job
 	q3->setVerbose(verbose);
-	q3->setRestTimeMillis(10);					//how much the dispatcher sleeps after each dispathing
+	q3->setRestTimeMillis(0);					//how much the dispatcher sleeps after each dispathing
 	q3->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
 	q3->setMaxJobsAtATime(howManyPerCycle);		//how many jobs to process at a time (threads)
 	
@@ -47,14 +47,14 @@ void testApp::update(){
 	addWorkUnitToWorkQueue(false);
 	
 	//then, keep trying to collect results.....
-	if (q1->getProcessedQueueLength() > 3){
-	GenericWorkUnit * wr1 = q1->retrieveNextProcessedUnit();
+	if (q1->getProcessedQueueLength() > 3){ //always leave 3 results on the queue
+		GenericWorkUnit * wr1 = q1->retrieveNextProcessedUnit();
 
-	if ( wr1 != NULL ){	//we got a result from the queue!
-		MyWorkUnit * wu1 = (MyWorkUnit*)wr1; //force a cast to our WorkUnit Type
-		if(verbose) cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
-		delete wr1; //once we got our result, delete the work unit that was holding it
-	}
+		if ( wr1 != NULL ){	//we got a result from the queue!
+			MyWorkUnit * wu1 = (MyWorkUnit*)wr1; //force a cast to our WorkUnit Type
+			if(verbose) cout <<"## got result for operation (" << wu1->getID() << ") WorkQueue. Fact(" << wu1->getInput() << ") = (" << wu1->getResult() << ")" << endl;
+			delete wr1; //once we got our result, delete the work unit that was holding it
+		}
 	}
 	
 	
@@ -95,7 +95,7 @@ void testApp::draw(){
 	int cellWidth = 10;		//width of each cell
 	bool drawID = false;	//draw each job's ID on top of its cell
 	
-	q1->draw(30,30,cellWidth, drawID);
+	q1->draw(30, 30, cellWidth, drawID);
 	
 	q2->draw(30, 100, cellWidth, drawID);
 	

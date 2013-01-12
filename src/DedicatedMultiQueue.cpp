@@ -265,8 +265,12 @@ void DedicatedMultiQueue::threadedFunction(){
 		
 	if (!timeToStop){
 		if (verbose) printf("detaching DedicatedMultiQueue thread!\n");
-		stopThread(true);		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared. 
-						//If not detached or joined with, it takes resources... neat, uh?		
+#if (OF_VERSION == 7 && OF_VERSION_MINOR == 2) 	 // OF 7.1 moved to poco threads TODO
+		stopThread();		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared.
+#else
+		stopThread(true);
+#endif
+						//If not detached or joined with, it takes resources... neat, uh?
 	}
 }
 

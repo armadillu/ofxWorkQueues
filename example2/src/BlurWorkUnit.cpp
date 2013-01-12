@@ -24,13 +24,13 @@ BlurWorkUnit::~BlurWorkUnit(){
 
 void BlurWorkUnit::process(){ //this will be exectued on a non-maon thread, keep this in mind if using openGL (ofImage, OpenCV, etc...)
 
-	int iterations = 10;
+	int iterations = 6;
 	int k = 2;
 	for (int i = 0; i < iterations; i++){
 //		for(int j = 0; j < k; j++) image.dilate();
 //		for(int j = 0; j < k; j++) image.erode();
-		image.blurGaussian(1);
-		ofSleepMillis(100);
+		image.blurGaussian(100);
+		//ofSleepMillis(100);
 		setPercentDone( (float)i / iterations);
 		if (status == PENDING_CANCELLATION) return;	//really important to check this often during the process, to stop if early if required
 	}

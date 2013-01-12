@@ -22,7 +22,7 @@ void MyWorkUnit::process(){ //this will be exectued on a non-maon thread, keep t
 	for (unsigned long long i = 1; i < input; i++){	//let's iterate
 		
 		result *= i;								//iterative calculation of factorial
-		ofSleepMillis(50);							//let's pretend this operation takes a looong time...
+		ofSleepMillis(30);							//let's pretend this operation takes a looong time...
 		
 		setPercentDone( (float)(i+1) / input );		//upate this work unit progress in each loop
 		if (isJobPendingCancelation()) return;	//check if we are to stop, to stop if early if required
