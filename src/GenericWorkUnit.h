@@ -10,7 +10,7 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofAdvancedThread.h"
+#include "ofxPThread.h"
 #include <vector>
 
 #define WORK_UNIT_DRAW_H		16.0f
@@ -26,7 +26,7 @@
 
 static int numWorkUnits = 0;
 
-class GenericWorkUnit : public ofAdvancedThread{	//subclass this object to accomodate your desired work
+class GenericWorkUnit : public ofxPThread{	//subclass this object to accomodate your desired work
 	
 	friend class DetachThreadQueue;
 	

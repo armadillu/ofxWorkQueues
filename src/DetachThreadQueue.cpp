@@ -34,7 +34,7 @@ DetachThreadQueue::~DetachThreadQueue(){
 		if ( w->isThreadRunning() ){
 			w->cancel();
 			if(verbose) printf("WorkUnit(%d) waitForThread at destructor \n", w->getID());
-			w->waitForThread(false);
+			w->waitForThread();
 		}
 		//w->unlock();
 		processing.erase( processing.begin() );
