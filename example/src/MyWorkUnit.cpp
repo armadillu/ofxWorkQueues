@@ -18,14 +18,17 @@ void MyWorkUnit::process(){ //this will be exectued on a non-maon thread, keep t
 							//do your timely operations here, and update "processPercent" with your progress if you want to visualize it on the queue draw method
 							//in this example, we'll be calculating the factorial of the input value 
 
-	result = 1;	
-	for (unsigned long long i = 1; i < input; i++){	//let's iterate
+	result = 1;
+	int iterations = input;
+	for(int i = 0; i < iterations; i++){
 		
 		result *= i;								//iterative calculation of factorial
-		ofSleepMillis(30);							//let's pretend this operation takes a looong time...
-		
-		setPercentDone( (float)(i+1) / input );		//upate this work unit progress in each loop
-		if (isJobPendingCancelation()) return;	//check if we are to stop, to stop if early if required
+		ofSleepMillis(10);							//let's pretend this operation takes a looong time...
+
+		setPercentDone( (float)(i+1) / iterations );		//upate this work unit progress in each loop
+		if (isJobPendingCancelation()){				//check if we are to stop, to stop if early if required
+			return;
+		}
 	}
 	
 	if ( ofRandom(1.0f) < 0.1 ) setStatusFailed();	//if required, you can mark a WorkUnit as failed.

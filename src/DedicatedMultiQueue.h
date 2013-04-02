@@ -12,13 +12,13 @@
 #include "ofMain.h"
 #include "GenericWorkUnit.h"
 #include "WorkQueue.h"
-#include "ofAdvancedThread.h"
+#include "ofxPThread.h"
 #include <queue>
 #include <vector>
 
 #define WORKER_NAMES "      "
 
-class DedicatedMultiQueue : public ofAdvancedThread{
+class DedicatedMultiQueue : public ofxPThread{
 
 	public:
 
@@ -36,8 +36,8 @@ class DedicatedMultiQueue : public ofAdvancedThread{
 		void setIndividualWorkerQueueMaxLen(int len);
 		void setMaxPendingQueueLength(int l){ maxPendingQueueLength = l; }
 		void setMeasureTimes(bool m);
-		void setNumWorkers(int num);	//use with caution, wont drop queues if u try decreasing! TODO!!
-		void setThreadPriority( int p );		// this will set the p of all the queues and the dispatcher thread
+		void setNumWorkers(int num);		//use with caution, wont drop queues if u try decreasing! TODO!!
+		void setThreadPriority( float p );// this will set the p of all the queues and the dispatcher thread [0..1]
 	
 		void join();	//experimental!
 
@@ -57,11 +57,10 @@ class DedicatedMultiQueue : public ofAdvancedThread{
 		int								maxWorkerQueueLen;
 		int								maxPendingQueueLength;
 	
-		bool							timeToStop;
 		bool							verbose;
 		bool							measureTime;
 	
-		int								priority;
+		float							priority;
 
 		void updateQueues();
 		int shortestWorkQueue();

@@ -10,12 +10,12 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofAdvancedThread.h"
+#include "ofxPThread.h"
 #include <queue>
 #include <vector>
 #include "GenericWorkUnit.h"
 
-class DetachThreadQueue : public ofAdvancedThread{
+class DetachThreadQueue : public ofxPThread{
 
 
 	public:

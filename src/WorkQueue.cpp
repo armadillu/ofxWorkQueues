@@ -12,36 +12,37 @@
 WorkQueue::WorkQueue(){
 	ID = numWorkQueues;
 	numWorkQueues ++;
-	timeToStop = false;
 	verbose = false;
-	maxQueueLen = 50;
+	maxQueueLen = 10;
 	currentWorkUnit = NULL;
-	askedToJoin = false;
 	measureTimes = false;
-	avgTimePerUnit = 0;	
+	avgTimePerUnit = 0;
 	queueName = "q";
 	pending.clear();
 	processed.clear();
-	priority = 44;
+	priority = 0.5;
+	priorityNeedsUpdating = false;
+	numJobsExecuted = 0;
 }
+
 
 WorkQueue::~WorkQueue(){
 	
-	timeToStop = true;
 	if(verbose) printf("WorkQueue::~WorkQueue()\n");
-	//ofxThread::setVerbose(true);	//thread printing
+
 	if (isThreadRunning()){
 		if(verbose) printf("WorkQueue::~WorkQueue() waiting for its Queue thread to end...\n");
 		lock();
-			if (currentWorkUnit != NULL)
+			if (currentWorkUnit != NULL){
 				currentWorkUnit->cancel();
+			}
 		unlock();
-		waitForThread(false) ;
+		waitForThread();
 	}
 
 	if(verbose) printf("WorkQueue::~WorkQueue deleting pending (%d) and processed (%d) work units...\n", (int)pending.size(), (int)processed.size() );
 
-	lock();
+	lock(); //not reall necessary
 	while ( pending.size() > 0 ){		
 		GenericWorkUnit * w = pending[0];
 		if(verbose) printf("WorkQueue::~WorkQueue delete pending work unit %d\n", w->getID());
@@ -55,19 +56,16 @@ WorkQueue::~WorkQueue(){
 		processed.erase( processed.begin() );
 		delete w;
 	}
-	unlock();
+	unlock(); //not reall necessary
 	if(verbose) printf("~WorkQueue() done!\n");
 }
 
 
 void WorkQueue::join(){
-	if (threadRunning){
-		askedToJoin = true;
-		waitForThread(false);
-		askedToJoin = false;
+	if (isThreadRunning()){
+		waitForThread();
 	}
 }
-
 
 GenericWorkUnit* WorkQueue::retrieveNextProcessedUnit(){
 	
@@ -83,13 +81,14 @@ GenericWorkUnit* WorkQueue::retrieveNextProcessedUnit(){
 	return w;
 }
 
+
 bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
 
 	bool ret = false;
-	if (verbose) printf("WorkQueue::addWorkUnit() trying to add ID = %d\n", job->getID() );			
+	if (verbose) printf("WorkQueue::addWorkUnit() trying to add ID = %d\n", job->getID() );
+
 	lock();
-	int cl = pending.size();
-		
+		int cl = pending.size();
 		if ( cl < maxQueueLen || ( cl < maxQueueLen * 1.5  && highPriority ) ){ // if job is high priority, give some margin to the max pending queue len restriction
 			if (verbose) printf("WorkQueue::addWorkUnit() added ID = %d\n", job->getID() );
 			if (!highPriority){
@@ -98,6 +97,7 @@ bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
 				job->highPriority = true;
 				pending.insert( pending.begin(), job);
 			}
+			cl ++;
 			ret = true;
 		}else{	
 			if (verbose) printf("WorkQueue::addWorkUnit() rejecting job %d, queue is too long!\n", job->getID());	
@@ -107,6 +107,21 @@ bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
 	return ret;
 }
 
+
+void WorkQueue::update(){
+
+	lock();
+	int numPending = pending.size();
+	unlock();
+
+	if (numPending > 0){ //start thread if we have work to do
+		if ( !isThreadRunning() ){
+			startThread(false /*verbose*/);
+		}
+	}
+}
+
+
 void WorkQueue::updateAverageTimes(float lastTime){
 	avgTimePerUnit = 0.95 * lastTime + 0.05 * avgTimePerUnit;
 }
@@ -115,14 +130,16 @@ void WorkQueue::setVerbose(bool v){
 	verbose = v;
 }
 
-void WorkQueue::setThreadPriority( int p ){
+void WorkQueue::setThreadPriority( float p ){
 	//printf("%d %d\n", sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
-	priority = ofClamp(p, sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
+	priority = ofClamp(p, 0, 1 );
+	priorityNeedsUpdating = true;
 	//printf("%d\n", priority);
 }
 
 void WorkQueue::applyThreadPriority(){
 	setPriority(priority);
+	priorityNeedsUpdating = false;
 }
 
 
@@ -130,25 +147,25 @@ void WorkQueue::threadedFunction(){
 
 	currentWorkUnit = NULL;	
 	
-	if(verbose) printf( "WorkQueue::threadedFunction() start processing\n" );
-	setName( "WorkQueue " + ofToString(ID) );
-	startTime = ofGetElapsedTimef();
-	
-	pendingN = 1; //we lie here, but its ok, less locking. Should be getPendingQueueLength();
+	if(verbose) printf( "WorkQueue::threadedFunction() WQ_%d start processing\n", ID );
+	setName( "WorkQueue " + ofToString(ID) ); //thread name
 
 	float timeBefore, timeAfter;
 
-	applyThreadPriority();
-	
-	while ( pendingN > 0 && !timeToStop ) {
-		
+	if (priorityNeedsUpdating){
+		applyThreadPriority();
+	}
+
+	while ( !isThreadExpectedToStop() ) {
 		lock();
 			pendingN = pending.size();
 			if ( pendingN <= 0 ){ 
 				unlock();
-				printf("mmmmmmmmmm.......\n");
-				continue;
+				requestThreadToStop();
+				if (verbose) printf("WorkQueue::threadedFunction() WQ_%d exiting loop, no pending jobs...\n", ID);
+				break;
 			}
+			if (verbose) printf("WorkQueue::threadedFunction() WQ_%d loop, %d left to process\n", ID,  pendingN);
 			currentWorkUnit = pending[0];
 			pending.erase( pending.begin() );
 		unlock();
@@ -162,30 +179,12 @@ void WorkQueue::threadedFunction(){
 		if(measureTimes) timeAfter = ofGetElapsedTimef();		
 		currentWorkUnit->postProcess();
 		if(measureTimes) updateAverageTimes(timeAfter - timeBefore);
+		numJobsExecuted++;
 
 		lock();			
 			processed.push_back(currentWorkUnit);
-			pendingN = pending.size();
-			currentWorkUnit = NULL;	
+			currentWorkUnit = NULL;
 		unlock();
-		
-		if(verbose) printf("WorkQueue::threadedFunction() looping, %d left to process\n", pendingN);
-	}
-	
-	if (askedToJoin){
-		askedToJoin = false;
-		if (verbose) printf("WorkQueue::Asked to join WorkQueue, ending threadedMethod!\n");
-		return;
-	}
-	
-	if (!timeToStop){
-		if (verbose) printf("WorkQueue::Detaching WorkQueue thread!\n");
-#if (OF_VERSION == 7 && OF_VERSION_MINOR == 2) 	 // OF 7.1 moved to poco threads TODO
-		stopThread();		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared.
-#else
-		stopThread(true);
-#endif
-								//If not detached or joined with, it takes resources... neat, uh?
 	}
 };
 
@@ -239,15 +238,6 @@ int WorkQueue::getProcessedQueueLength(){
 	return l;
 }
 
-void WorkQueue::update(){
-
-	if ( !isThreadRunning() ){
-		pendingN = pending.size();
-		if ( pendingN > 0 ){ // make sure the thread is started if there's work to do
-			startThread(true, false);
-		}
-	}
-}
 
 void WorkQueue::draw( int x, int y, int tileW, bool drawIDs, int queueID ){
 

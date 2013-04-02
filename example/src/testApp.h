@@ -4,6 +4,10 @@
 
 #include "ofMain.h"
 
+#define WORK_QUEUE 1
+#define DEDICATED_MULTIQUEUE 1
+#define DETACH_THREAD_QUEUE 1
+
 #include "WorkQueue.h"
 #include "DedicatedMultiQueue.h"
 #include "DetachThreadQueue.h"
@@ -27,10 +31,18 @@ class testApp : public ofBaseApp{
 		void addWorkUnitToWorkQueue(bool highPriority);
 		void addWorkUnitToDedicatedMultiQueue(bool highPriority);
 		void addWorkUnitToDetachThreadQueue(bool highPriority);
-	
+
+		#ifdef WORK_QUEUE
 		WorkQueue * q1;				// A queue of work units, ine process after each other ( 1 thread  )
+		#endif
+
+		#ifdef DEDICATED_MULTIQUEUE
 		DedicatedMultiQueue * q2;	// N balanced WorkQueues, N threads. If queue is not empty, only N threads spawned.
+		#endif
+
+		#ifdef DETACH_THREAD_QUEUE
 		DetachThreadQueue * q3;		// N jobs processed concurrently, spawns 1 new thread per job
+		#endif
 	
 };
 

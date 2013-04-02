@@ -25,7 +25,7 @@ DetachThreadQueue::~DetachThreadQueue(){
 	timeToStop = true;	//lets flag the thread so that it doesnt try access stuff while we delete things around	
 	if(verbose) printf("DetachThreadQueue::~DetachThreadQueue() waiting for queue thread...\n");
 	if (isThreadRunning())
-		waitForThread(false);
+		waitForThread();
 	
 	if(verbose) printf("DetachThreadQueue::~DetachThreadQueuedeleting deleting pending, processing and processed work units...\n");
 	while ( processing.size() > 0 ){
@@ -208,12 +208,7 @@ void DetachThreadQueue::threadedFunction(){
 	
 	if (!timeToStop){
 		if (verbose) printf("detaching DetachThreadQueue thread!\n");
-	#if (OF_VERSION == 7 && OF_VERSION_MINOR == 2) 	 // OF 7.1 moved to poco threads TODO
-		stopThread();		//why? cos this is a 1-off thread, once the task is finished, this thread is to be cleared.
-	#else
-		stopThread(true);
-	#endif
-						//If not detached or joined with, it takes resources... neat, uh?
+		requestThreadToStop();
 	}
 }
 
@@ -223,7 +218,7 @@ void DetachThreadQueue::update(){
 		int nPending = pending.size();
 		
 		if ( nPending > 0 ){	//if the queue is not running, lets start it
-			startThread(true, false);
+			startThread(false);
 		}
 	}
 }

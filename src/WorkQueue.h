@@ -11,14 +11,14 @@
 
 #include "ofMain.h"
 #include "GenericWorkUnit.h"
-#include "ofAdvancedThread.h"
+#include "ofxPThread.h"
 #include <vector>
 #include <pthread.h>
 #include <sched.h>
 
 static int numWorkQueues = 0; 
 
-class WorkQueue : public ofAdvancedThread{	//subclass the WorkQueue object to accomodate your desired work
+class WorkQueue : public ofxPThread{	//subclass the WorkQueue object to accomodate your desired work
 	
 	public:
 		
@@ -42,7 +42,7 @@ class WorkQueue : public ofAdvancedThread{	//subclass the WorkQueue object to ac
 		void setMaxQueueLength(int l){ maxQueueLen = l; pending.reserve(maxQueueLen); }
 		void setMeasureTimes(bool m){ measureTimes = m; }
 		void setQueueName(string name){ queueName = name; }
-		void setThreadPriority( int p ); /* 15 - 47 */
+		void setThreadPriority( float p ); /* 0 - 1 >> 0 being lowest */
 		void join();	//experimental!
 	
 	private: 
@@ -53,19 +53,20 @@ class WorkQueue : public ofAdvancedThread{	//subclass the WorkQueue object to ac
 		int								ID;
 		int								maxQueueLen;
 		int								pendingN;
-	
-		bool							timeToStop;
-		bool							askedToJoin;
+
 		bool							measureTimes;
 		bool							verbose;
 		
-		float							startTime;
+		//float							startTime;
 		float							avgTimePerUnit;
 		string							queueName;
 	
 		GenericWorkUnit*				currentWorkUnit;
 	
-		int priority;
+		float							priority;
+		bool							priorityNeedsUpdating;
+
+		int								numJobsExecuted;
 
 		void threadedFunction();
 		void applyThreadPriority();
