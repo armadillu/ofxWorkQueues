@@ -2,19 +2,19 @@
 #include "MyWorkUnit.h"
 
 int howManyPerCycle = 4;			//num threads to distribute the jobs on (per demoed structure)
-int maxPending = 50;				//how many work units can there be pending on the queue (buffer length)
+int maxPending = 8;				//how many work units can there be pending on the queue (buffer length)
 int maxFactorialToCalculate = 31;
 bool verbose = false;
 bool measureTimes = true;
-int resultBuffer = 10;
-float addWorkDuringFirstSeconds = 10;
+int resultBuffer = 100;
+float addWorkDuringFirstSeconds = 3;
 
 void testApp::setup(){	
 
 	ofSetVerticalSync(true);
 	ofSetFrameRate(60);
 	ofEnableAlphaBlending();
-	ofBackground(11, 11, 11);
+	ofBackground(22);
 
 	#ifdef WORK_QUEUE
 	q1 = new WorkQueue();		// A queue of work units, one processed after each other ( 1 thread )
