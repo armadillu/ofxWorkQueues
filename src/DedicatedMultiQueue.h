@@ -43,7 +43,7 @@ class DedicatedMultiQueue : public ofxPThread{
 
 		int getPendingQueueLength();
 		int getProcessedQueueLength();
-		
+		int getTotalWaitingJobs();
 		
 	private: 
 

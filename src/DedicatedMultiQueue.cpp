@@ -224,8 +224,8 @@ void DedicatedMultiQueue::updateQueues(){
 			processed.push_back( w );
 		}
 	}
-	workers[0]->setThreadPriority(1);
-	workers[1]->setThreadPriority(0);
+	//workers[0]->setThreadPriority(1);
+	//workers[1]->setThreadPriority(0);
 	unlock();
 }
 
@@ -258,6 +258,17 @@ int DedicatedMultiQueue::getProcessedQueueLength(){
 	unlock();
 	return n;
 }
+
+int DedicatedMultiQueue::getTotalWaitingJobs(){
+	lock();
+	int n = 0;
+	for(int i = 0; i < workers.size(); i++){
+		n += workers[i]->getPendingQueueLength();
+	}
+	unlock();
+	return n;
+}
+
 
 
 
