@@ -4,9 +4,9 @@
 
 #include "ofMain.h"
 
-#define WORK_QUEUE 1
+//#define WORK_QUEUE 1
 #define DEDICATED_MULTIQUEUE 1
-#define DETACH_THREAD_QUEUE 1
+//#define DETACH_THREAD_QUEUE 1
 
 #include "WorkQueue.h"
 #include "DedicatedMultiQueue.h"
