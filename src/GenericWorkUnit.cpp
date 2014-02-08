@@ -9,7 +9,12 @@
 
 #include "ofMain.h"
 #include "GenericWorkUnit.h"
-	
+#ifdef TARGET_OSX
+	#include <pthread.h>
+	#include <sched.h>
+#endif
+
+
 GenericWorkUnit::GenericWorkUnit(){
 	status = UNPROCESSED;
 	ID = numWorkUnits;
@@ -57,9 +62,11 @@ void GenericWorkUnit::draw(int x, int y, int tileW, bool drawIDs){
 	}
 }
 
+
 void GenericWorkUnit::processInThread(){	
 	startThread(false);
 };
+
 
 void GenericWorkUnit::setGLColorAccordingToStatus(){
 	
@@ -74,10 +81,10 @@ void GenericWorkUnit::setGLColorAccordingToStatus(){
 	}
 }
 
+
 void GenericWorkUnit::preProcess(){
 	status = GenericWorkUnit::PROCESSING;
 }
-
 
 void GenericWorkUnit::postProcess(){
 	if (status == PENDING_CANCELLATION){
@@ -90,21 +97,13 @@ void GenericWorkUnit::postProcess(){
 }
 
 
-void GenericWorkUnit::process(){	//subclass this method to do your work
-
-	int numIterations = ofRandom(20, 25);
-	printf("GenericWorkUnit::Subclass GenericWorkUnit and implement your own process() method!\n");
-	
-	for ( int i = 0; i < numIterations; i++) {
-		if (status == PENDING_CANCELLATION) return;
-		processPercent = (float)i / numIterations;
-		ofSleepMillis(10);
-	}
-}
-	
 void GenericWorkUnit::threadedFunction(){
 
-	setName("WorkUnit " + ofToString(ID) );
+	#ifdef TARGET_OSX
+	string name = "WorkUnit " + ofToString(ID);
+	pthread_setname_np(name.c_str());
+	#endif
+
 	preProcess();
 	process();
 	postProcess();
@@ -114,4 +113,12 @@ void GenericWorkUnit::threadedFunction(){
 	}else{
 		if(debug) printf("GenericWorkUnit::This WorkUnit (%d) was cancelled, thus it's not detached (we will join it in destructor)\n", ID);
 	}
+	#ifdef TARGET_OSX
+	pthread_detach(pthread_self()); //fixing that nasty zombie ofThread bug here
+	#endif
 };
+
+
+void GenericWorkUnit::process(){	//subclass this method to do your work!
+	printf("GenericWorkUnit::Subclass GenericWorkUnit and implement your own process() method!\n");
+}

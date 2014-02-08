@@ -8,6 +8,10 @@
  */
 
 #include "DetachThreadQueue.h"
+#ifdef TARGET_OSX
+	#include <pthread.h>
+	#include <sched.h>
+#endif
 
 DetachThreadQueue::DetachThreadQueue(){
 	maxProcessing = 4;
@@ -15,7 +19,6 @@ DetachThreadQueue::DetachThreadQueue(){
 	timeToStop = false;
 	verbose = false;
 	maxPendingQueueLength = 100;
-	priority = 44;
 }
 
 
@@ -53,12 +56,6 @@ DetachThreadQueue::~DetachThreadQueue(){
 	if(verbose) printf("~DetachThreadQueue() done!\n");
 }
 
-
-void DetachThreadQueue::setPriority( int p ){
-	//printf("%d %d\n", sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
-	priority = ofClamp(p, sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
-	//printf("%d\n", priority);	
-}
 
 
 bool DetachThreadQueue::addWorkUnit(GenericWorkUnit* job, bool highPriority){
@@ -175,8 +172,10 @@ void DetachThreadQueue::threadedFunction(){
 	unlock();
 	
 	if(verbose) printf("DetachThreadQueue::threadedFunction() start processing\n");
-	setName("DetachThreadQueue Manager");
-	
+	#ifdef TARGET_OSX
+		pthread_setname_np("DetachThreadQueue Manager");
+	#endif
+
 	while( ( nPending > 0 || nProcessing > 0 ) && !timeToStop ){
 
 		bool needToRest = false;
@@ -208,7 +207,7 @@ void DetachThreadQueue::threadedFunction(){
 	
 	if (!timeToStop){
 		if (verbose) printf("detaching DetachThreadQueue thread!\n");
-		requestThreadToStop();
+		stopThread();
 	}
 }
 

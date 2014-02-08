@@ -8,6 +8,10 @@
  */
 
 #include "DedicatedMultiQueue.h"
+#ifdef TARGET_OSX
+	#include <pthread.h>
+	#include <sched.h>
+#endif
 
 DedicatedMultiQueue::DedicatedMultiQueue( int numWorkers_ ){
 	if (numWorkers_ < 1) numWorkers_ = 1;
@@ -17,21 +21,19 @@ DedicatedMultiQueue::DedicatedMultiQueue( int numWorkers_ ){
 	maxWorkerQueueLen = 10;
 	maxPendingQueueLength = 100;
 	verbose = false;
-	priority = 0.5;
 	for (int i = 0; i < numWorkers; i++){
 		WorkQueue * wq = new WorkQueue();
 		wq->setQueueName(WORKER_NAMES);
 		//wq->setVerbose(true);
 		workers.push_back( wq );
-		//workers[i]->setThreadPriority(priority);
 	}
-	//setThreadPriority(47);
-	setThreadPriority(0.5);
+	weAreBeingDeleted = false;
 }
 
 
 DedicatedMultiQueue::~DedicatedMultiQueue(){
-	
+
+	weAreBeingDeleted = true;
 	if(verbose) printf("DedicatedMultiQueue::~DedicatedMultiQueue() waiting for queue thread...\n");
 	if (isThreadRunning()){
 		waitForThread();
@@ -58,11 +60,28 @@ DedicatedMultiQueue::~DedicatedMultiQueue(){
 }
 
 
-void DedicatedMultiQueue::setThreadPriority( float p ){
-	priority = ofClamp(p, 0, 1 );
-	for (int i = 0; i < numWorkers; i++){
-		workers[i]->setThreadPriority(priority);
+bool DedicatedMultiQueue::addWorkUnit(GenericWorkUnit* job, bool highPriority){
+
+	lock();
+	bool ret = false;
+	int ql = pending.size();
+
+	if ( ql < maxPendingQueueLength || ( ql < maxPendingQueueLength * 1.5  && highPriority ) ){
+		if (!highPriority){
+			pending.push_back(job);
+		}else{
+			job->highPriority = true;
+			pending.insert( pending.begin(), job);
+		}
+		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() ID = %d\n", job->getID());
+		ret = true;
+
+	}else{
+		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() rejecting job %d, pending queue is already too long!\n", job->getID());
 	}
+	unlock();
+
+	return ret;
 }
 
 
@@ -89,47 +108,11 @@ void DedicatedMultiQueue::setMeasureTimes(bool m){
 	}
 }
 
-void DedicatedMultiQueue::join(){
-
-	if (isThreadRunning()){
-		waitForThread();
-	}
-	
-	for (int i = 0; i < numWorkers; i++){
-		if(verbose) printf("asking to join WorkQueue %d...\n", i);
-		workers[i]->join();
-		if(verbose) printf("done joining WorkQueue %d...\n", i);
-	}
-}
-
-bool DedicatedMultiQueue::addWorkUnit(GenericWorkUnit* job, bool highPriority){
-
-	lock();
-	bool ret = false;
-	int ql = pending.size();
-	
-	if ( ql < maxPendingQueueLength || ( ql < maxPendingQueueLength * 1.5  && highPriority ) ){
-		if (!highPriority){
-			pending.push_back(job);
-		}else{
-			job->highPriority = true;
-			pending.insert( pending.begin(), job);
-		}
-		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() ID = %d\n", job->getID());		
-		ret = true;
-
-	}else{
-		if (verbose) printf("DedicatedMultiQueue::addWorkUnit() rejecting job %d, pending queue is already too long!\n", job->getID());			
-	}
-	unlock();
-
-	return ret;
-}
 
 void DedicatedMultiQueue::update(){
+
 	lock();
 	int numPending = pending.size();
-	unlock();
 
 	for (int i = 0 ; i < numWorkers; i++) {
 		workers[i]->update();
@@ -140,20 +123,25 @@ void DedicatedMultiQueue::update(){
 			startThread(false /*verbose*/);
 		}
 	}
+	unlock();
 }
+
 
 void DedicatedMultiQueue::threadedFunction(){
 
-	int nPending = getPendingQueueLength();
+
 	if(verbose) printf("DedicatedMultiQueue::threadedFunction() start processing\n");
-	setName("DedicatedMultiQueue Manager");
+	#ifdef TARGET_OSX
+	pthread_setname_np("DedicatedMultiQueue Manager");
+	#endif
+
 	int stillWorking = 0;
 	
-	while( !isThreadExpectedToStop() ){
+	while( isThreadRunning() ){
 
 		lock();
-		nPending = pending.size(); // how many pending jobs
-		stillWorking = 0;			//how many workers are working
+		int nPending = pending.size();	// how many pending jobs
+		stillWorking = 0;				//how many workers are working
 		for (int i = 0 ; i < numWorkers; i++) {
 			if ( workers[i]->getPendingQueueLength() > 0){
 				stillWorking++;
@@ -162,13 +150,15 @@ void DedicatedMultiQueue::threadedFunction(){
 
 		if( nPending == 0 && stillWorking == 0){ //if no jobs left, and no workers currently working, stop the loop
 			unlock();
-			requestThreadToStop();
+			stopThread();
 			break;
 		}
 
+
 		for (int i = 0 ; i < numWorkers; i++){
-			
+
 			nPending = pending.size();
+
 			if (nPending > 0 ){
 
 				int shortestQueue = shortestWorkQueue();
@@ -179,17 +169,24 @@ void DedicatedMultiQueue::threadedFunction(){
 					pending.erase( pending.begin() );
 					workers[shortestQueue]->addWorkUnit( w, w->highPriority );
 				}
-			}			
+			}
 		}
-		unlock();		
-		updateQueues();	
-		
+		unlock();
+
+		updateQueues();
+
 		if (restTime > 0){
 			ofSleepMillis(restTime);
 		}
 	}
 	
 	updateQueues();
+
+	#ifdef TARGET_OSX
+	if(!weAreBeingDeleted){
+		pthread_detach(pthread_self()); //fixing that nasty zombie ofThread bug here
+	}
+	#endif
 }
 
 
@@ -217,16 +214,14 @@ int DedicatedMultiQueue::shortestWorkQueue(){ // this needs to be made more effi
 
 void DedicatedMultiQueue::updateQueues(){
 
-	lock();
 	for (int i = 0; i < numWorkers; i++){
 		GenericWorkUnit * w = workers[i]->retrieveNextProcessedUnit();
 		if (w != NULL){
+			lock();
 			processed.push_back( w );
+			unlock();
 		}
 	}
-	//workers[0]->setThreadPriority(1);
-	//workers[1]->setThreadPriority(0);
-	unlock();
 }
 
 

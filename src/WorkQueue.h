@@ -11,14 +11,14 @@
 
 #include "ofMain.h"
 #include "GenericWorkUnit.h"
-#include "ofxPThread.h"
-#include <vector>
-#include <pthread.h>
-#include <sched.h>
+//#include "ofxPThread.h"
+//#include <vector>
+//#include <pthread.h>
+//#include <sched.h>
 
 static int numWorkQueues = 0; 
 
-class WorkQueue : public ofxPThread{	//subclass the WorkQueue object to accomodate your desired work
+class WorkQueue : public ofThread{	//subclass the WorkQueue object to accomodate your desired work
 	
 	public:
 		
@@ -38,14 +38,15 @@ class WorkQueue : public ofxPThread{	//subclass the WorkQueue object to accomoda
 		int getAproxPendingQueueLength(){ return pendingN; } //not to be trusted, will give a loose result, but will not lock so should be faster
 		int getPendingQueueLength();
 		int getProcessedQueueLength();
-		void setVerbose(bool v);
 		void setMaxQueueLength(int l){ maxQueueLen = l; pending.reserve(maxQueueLen); }
 		void setMeasureTimes(bool m){ measureTimes = m; }
 		void setQueueName(string name){ queueName = name; }
-		void setThreadPriority( float p ); /* 0 - 1 >> 0 being lowest */
+
+
 		void join();	//experimental!
-	
-	private: 
+		void setVerbose(bool v);
+
+	private:
 	
 		vector <GenericWorkUnit*>		pending;
 		vector <GenericWorkUnit*>		processed;	
@@ -62,14 +63,12 @@ class WorkQueue : public ofxPThread{	//subclass the WorkQueue object to accomoda
 		string							queueName;
 	
 		GenericWorkUnit*				currentWorkUnit;
-	
-		float							priority;
-		bool							priorityNeedsUpdating;
 
 		int								numJobsExecuted;
 
+		bool							weAreBeingDeleted; //to avoid doing the last join on destruction, as then we can't do waitForThread
+
 		void threadedFunction();
-		void applyThreadPriority();
 		void updateAverageTimes(float lastTime);
 	
 };

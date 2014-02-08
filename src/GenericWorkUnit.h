@@ -10,8 +10,6 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxPThread.h"
-#include <vector>
 
 #define WORK_UNIT_DRAW_H		16.0f
 #define TILE_DRAW_GAP_H			2.0f
@@ -26,7 +24,7 @@
 
 static int numWorkUnits = 0;
 
-class GenericWorkUnit : public ofxPThread{	//subclass this object to accomodate your desired work
+class GenericWorkUnit : public ofThread{	//subclass this object to accomodate your desired work
 	
 	friend class DetachThreadQueue;
 	
@@ -39,7 +37,7 @@ class GenericWorkUnit : public ofxPThread{	//subclass this object to accomodate 
 		void processInThread();		//call this to spawn a thread that will do the work (process()) and clean up after himself
 		void cancel();				//flags the thread to stop its work, call this if you want to stop early
 
-		virtual void process();		//subclass this method to do your work! <<<<<<<<<
+		virtual void process() = 0;		//subclass this method to do your work! <<<<<<<<<
 			
 		inline float getPercentDone(){ return processPercent;}
 		WorkUnitStatus getStatus(){ return status;}
@@ -56,7 +54,7 @@ class GenericWorkUnit : public ofxPThread{	//subclass this object to accomodate 
 		void				setStatusFailed(){ status = FAILED; }
 		bool				isJobPendingCancelation(){ return status == PENDING_CANCELLATION; }
 
-		virtual void		setGLColorAccordingToStatus();
+		virtual void		setGLColorAccordingToStatus(); //subclass to colorize your work units
 		inline void			setPercentDone(float pct){ processPercent = pct;}
 	
 	private:
@@ -64,11 +62,9 @@ class GenericWorkUnit : public ofxPThread{	//subclass this object to accomodate 
 		void				preProcess();	
 		void				postProcess();		
 
-		void				setIsHighPriority(){ highPriority = true; }
-		bool				isHighPriority(){ return highPriority; }
-
-		float				processPercent;	// you are suposed to update this, [0..1]
+		float				processPercent;	// you are suposed to update this, [0..1] if you want to get progressbar updates
 		void				threadedFunction();
+
 		bool				debug;
 		bool				highPriority;
 	

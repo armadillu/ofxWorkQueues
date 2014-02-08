@@ -8,6 +8,10 @@
  */
 
 #include "WorkQueue.h"
+#ifdef TARGET_OSX
+	#include <pthread.h>
+	#include <sched.h>
+#endif
 
 WorkQueue::WorkQueue(){
 	ID = numWorkQueues;
@@ -20,29 +24,29 @@ WorkQueue::WorkQueue(){
 	queueName = "q";
 	pending.clear();
 	processed.clear();
-	priority = 0.5;
-	priorityNeedsUpdating = false;
 	numJobsExecuted = 0;
+	weAreBeingDeleted = false;
 }
 
 
 WorkQueue::~WorkQueue(){
-	
+
+	weAreBeingDeleted = true;
 	if(verbose) printf("WorkQueue::~WorkQueue()\n");
 
+	lock();
 	if (isThreadRunning()){
 		if(verbose) printf("WorkQueue::~WorkQueue() waiting for its Queue thread to end...\n");
-		lock();
 			if (currentWorkUnit != NULL){
 				currentWorkUnit->cancel();
 			}
-		unlock();
 		waitForThread();
 	}
+	unlock();
 
 	if(verbose) printf("WorkQueue::~WorkQueue deleting pending (%d) and processed (%d) work units...\n", (int)pending.size(), (int)processed.size() );
 
-	lock(); //not reall necessary
+	lock(); //not really necessary
 	while ( pending.size() > 0 ){		
 		GenericWorkUnit * w = pending[0];
 		if(verbose) printf("WorkQueue::~WorkQueue delete pending work unit %d\n", w->getID());
@@ -61,15 +65,39 @@ WorkQueue::~WorkQueue(){
 }
 
 
-void WorkQueue::join(){
-	if (isThreadRunning()){
-		waitForThread();
+bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
+
+	bool ret = false;
+	if (verbose) printf("WorkQueue::addWorkUnit() trying to add ID = %d\n", job->getID() );
+
+	lock();
+	int cl = pending.size();
+
+	// if job is high priority, give some margin to the max pending queue len restriction
+	if ( cl < maxQueueLen || ( cl < maxQueueLen * 1.5  && highPriority ) ){
+
+		if (verbose) printf("WorkQueue::addWorkUnit() added ID = %d\n", job->getID() );
+
+		if (!highPriority){
+			pending.push_back(job);
+		}else{
+			job->highPriority = true;
+			pending.insert( pending.begin(), job); //sneak into the beginning of the queue
+		}
+		ret = true;
+	}else{
+		if (verbose) printf("WorkQueue::addWorkUnit() rejecting job %d, queue is too long!\n", job->getID());
+		ret = false;
 	}
+	unlock();
+	return ret;
 }
+
 
 GenericWorkUnit* WorkQueue::retrieveNextProcessedUnit(){
 	
 	GenericWorkUnit * w = NULL;
+
 	lock();
 	int procS = processed.size();
 	if ( procS > 0){
@@ -82,43 +110,15 @@ GenericWorkUnit* WorkQueue::retrieveNextProcessedUnit(){
 }
 
 
-bool WorkQueue::addWorkUnit( GenericWorkUnit * job, bool highPriority){
-
-	bool ret = false;
-	if (verbose) printf("WorkQueue::addWorkUnit() trying to add ID = %d\n", job->getID() );
-
-	lock();
-		int cl = pending.size();
-		if ( cl < maxQueueLen || ( cl < maxQueueLen * 1.5  && highPriority ) ){ // if job is high priority, give some margin to the max pending queue len restriction
-			if (verbose) printf("WorkQueue::addWorkUnit() added ID = %d\n", job->getID() );
-			if (!highPriority){
-				pending.push_back(job);
-			}else{
-				job->highPriority = true;
-				pending.insert( pending.begin(), job);
-			}
-			cl ++;
-			ret = true;
-		}else{	
-			if (verbose) printf("WorkQueue::addWorkUnit() rejecting job %d, queue is too long!\n", job->getID());	
-			ret = false;
-		}
-	unlock();
-	return ret;
-}
-
-
 void WorkQueue::update(){
 
 	lock();
-	int numPending = pending.size();
-	unlock();
-
-	if (numPending > 0){ //start thread if we have work to do
+	if (pending.size() > 0){ //start thread if we have work to do
 		if ( !isThreadRunning() ){
 			startThread(false /*verbose*/);
 		}
 	}
+	unlock();
 }
 
 
@@ -126,20 +126,9 @@ void WorkQueue::updateAverageTimes(float lastTime){
 	avgTimePerUnit = 0.95 * lastTime + 0.05 * avgTimePerUnit;
 }
 
+
 void WorkQueue::setVerbose(bool v){ 
 	verbose = v;
-}
-
-void WorkQueue::setThreadPriority( float p ){
-	//printf("%d %d\n", sched_get_priority_min(SCHED_OTHER), sched_get_priority_max(SCHED_OTHER) );
-	priority = ofClamp(p, 0, 1 );
-	priorityNeedsUpdating = true;
-	//printf("%d\n", priority);
-}
-
-void WorkQueue::applyThreadPriority(){
-	setPriority(priority);
-	priorityNeedsUpdating = false;
 }
 
 
@@ -148,44 +137,49 @@ void WorkQueue::threadedFunction(){
 	currentWorkUnit = NULL;	
 	
 	if(verbose) printf( "WorkQueue::threadedFunction() WQ_%d start processing\n", ID );
-	setName( "WorkQueue " + ofToString(ID) ); //thread name
+
+	#ifdef TARGET_OSX
+	string name = "WorkQueue " + ofToString(ID);
+	pthread_setname_np(name.c_str());
+	#endif
 
 	float timeBefore, timeAfter;
 
-	if (priorityNeedsUpdating){
-		applyThreadPriority();
-	}
+	while ( isThreadRunning() ) {
 
-	while ( !isThreadExpectedToStop() ) {
 		lock();
 			pendingN = pending.size();
 			if ( pendingN <= 0 ){ 
 				unlock();
-				requestThreadToStop();
+				stopThread();
 				if (verbose) printf("WorkQueue::threadedFunction() WQ_%d exiting loop, no pending jobs...\n", ID);
 				break;
 			}
 			if (verbose) printf("WorkQueue::threadedFunction() WQ_%d loop, %d left to process\n", ID,  pendingN);
 			currentWorkUnit = pending[0];
 			pending.erase( pending.begin() );
-		unlock();
-		
-		//int currID = currentWorkUnit->getID();
-		//printf("currentWorkUnit is %d\n", currID);
 
-		currentWorkUnit->preProcess();
-		if(measureTimes) timeBefore = ofGetElapsedTimef();
-		currentWorkUnit->process();	//run the job in the current thread
-		if(measureTimes) timeAfter = ofGetElapsedTimef();		
-		currentWorkUnit->postProcess();
-		if(measureTimes) updateAverageTimes(timeAfter - timeBefore);
-		numJobsExecuted++;
+			//int currID = currentWorkUnit->getID();
+			//printf("currentWorkUnit is %d\n", currID);
 
-		lock();			
+			currentWorkUnit->preProcess();
+			if(measureTimes) timeBefore = ofGetElapsedTimef();
+			currentWorkUnit->process();	//run the job in the current thread
+			if(measureTimes) timeAfter = ofGetElapsedTimef();
+			currentWorkUnit->postProcess();
+			if(measureTimes) updateAverageTimes(timeAfter - timeBefore);
+			numJobsExecuted++;
+
 			processed.push_back(currentWorkUnit);
 			currentWorkUnit = NULL;
 		unlock();
 	}
+
+	#ifdef TARGET_OSX
+	if(!weAreBeingDeleted){
+		pthread_detach(pthread_self()); //fixing that nasty zombie ofThread bug here
+	}
+	#endif
 };
 
 
@@ -200,6 +194,7 @@ vector<int> WorkQueue::getProcessedIDs(){
 	return v;
 }
 
+
 vector<int> WorkQueue::getPendingIDs(){
 	vector<int> v;
 	lock();
@@ -210,6 +205,7 @@ vector<int> WorkQueue::getPendingIDs(){
 	unlock();
 	return v;
 }
+
 
 float WorkQueue::getCurrentWorkUnitPercentDone(){
 
@@ -222,13 +218,15 @@ float WorkQueue::getCurrentWorkUnitPercentDone(){
 	return d;
 }
 
+
 int WorkQueue::getPendingQueueLength(){
 	lock();
-		int l = pending.size() + ((currentWorkUnit != NULL) ? 1 : 0);
+	int l = pending.size() + (int) ((currentWorkUnit != NULL) ? 1 : 0);
 	unlock();
-	if (verbose) printf("getPendingQueueLength() >> %d\n",l);
+	if (verbose) printf("getPendingQueueLength() >> %d\n", l);
 	return l;
 }
+
 
 int WorkQueue::getProcessedQueueLength(){
 	lock();
@@ -304,4 +302,10 @@ void WorkQueue::draw( int x, int y, int tileW, bool drawIDs, int queueID ){
 		ofDrawBitmapString( time , gap + TEXT_DRAW_WIDTH + 5.0f + w * (off + k + j) + w * 0.15f, /*2 * h + */ h - h * (1.0f- BITMAP_MSG_HEIGHT));
 	}
 	ofPopMatrix();
+}
+
+void WorkQueue::join(){
+	if (isThreadRunning()){
+		waitForThread();
+	}
 }

@@ -1,20 +1,21 @@
 #include "testApp.h"
 #include "MyWorkUnit.h"
 
-int howManyPerCycle = 4;			//num threads to distribute the jobs on (per demoed structure)
-int maxPending = 8;				//how many work units can there be pending on the queue (buffer length)
+int howManyPerCycle = 04;	//num threads to distribute the jobs on (per demoed structure)
+int maxPending = 20;		//how many work units can there be pending on the queue (buffer length)
 int maxFactorialToCalculate = 31;
+int resultBuffer = 100;		//how many results to keep in buffer before gathering
+float addWorkDuringFirstSeconds = 10;
 bool verbose = false;
 bool measureTimes = true;
-int resultBuffer = 100;
-float addWorkDuringFirstSeconds = 3;
+
 
 void testApp::setup(){	
 
 	ofSetVerticalSync(true);
-	ofSetFrameRate(60);
+	ofSetFrameRate(64);
 	ofEnableAlphaBlending();
-	ofBackground(22);
+	ofBackground(190);
 
 	#ifdef WORK_QUEUE
 	q1 = new WorkQueue();		// A queue of work units, one processed after each other ( 1 thread )
@@ -29,7 +30,7 @@ void testApp::setup(){
 	q2->setMeasureTimes(measureTimes);			//measure how long each job takes, and draw the average 
 	q2->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispatch. Low numbers make it more responsive, but takes more cpu
 	q2->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
-	q2->setIndividualWorkerQueueMaxLen(maxPending);		//how many work units each thread queue can have
+	q2->setIndividualWorkerQueueMaxLen(1 + maxPending * 0.5);	//how many work units each thread queue can have
 	#endif
 
 

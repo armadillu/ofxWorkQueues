@@ -10,12 +10,9 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxPThread.h"
-#include <queue>
-#include <vector>
 #include "GenericWorkUnit.h"
 
-class DetachThreadQueue : public ofxPThread{
+class DetachThreadQueue : public ofThread{
 
 
 	public:
@@ -36,8 +33,6 @@ class DetachThreadQueue : public ofxPThread{
 		int getPendingQueueLength();
 		int getProcessingQueueLength();
 		int getProcessedQueueLength();
-	
-		void setPriority( int p ); // this will set the p of all the queues and the dispatcher thread
 
 	private:
 
@@ -52,8 +47,6 @@ class DetachThreadQueue : public ofxPThread{
 		int							maxProcessing;
 		int							restTime;
 		int							maxPendingQueueLength;
-	
-		int							priority;
 	
 		bool						timeToStop;
 		bool						verbose;
