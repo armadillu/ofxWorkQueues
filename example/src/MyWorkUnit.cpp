@@ -24,7 +24,7 @@ void MyWorkUnit::process(){ //this will be exectued on a non-main thread, keep t
 	for(int i = 0; i < iterations; i++){
 		
 		result *= i;								//iterative calculation of factorial
-		ofSleepMillis(100);							//let's pretend this operation takes a looong time...
+		ofSleepMillis(500);							//let's pretend this operation takes a looong time...
 
 		setPercentDone( (float)i / (iterations - 1) );	//update this work unit progress in each loop
 		if (isJobPendingCancelation()){					//check if we have been asked to stop this job, to stop if early if required

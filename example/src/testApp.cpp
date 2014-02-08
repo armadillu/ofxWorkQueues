@@ -30,7 +30,7 @@ void testApp::setup(){
 	q2->setMeasureTimes(measureTimes);			//measure how long each job takes, and draw the average 
 	q2->setRestTimeMillis(1);					//how much the dispatcher sleeps after each dispatch. Low numbers make it more responsive, but takes more cpu
 	q2->setMaxPendingQueueLength(maxPending);	//queued job buffer length. If try to add a job and buffer is longer than this, job will be rejected.
-	q2->setIndividualWorkerQueueMaxLen(1 + maxPending * 0.5);	//how many work units each thread queue can have
+	q2->setIndividualWorkerQueueMaxLen(1);		//how many work units each thread queue can have
 	#endif
 
 

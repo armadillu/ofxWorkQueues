@@ -71,4 +71,6 @@ class GenericWorkUnit : public ofThread{	//subclass this object to accomodate yo
 		friend class		WorkQueue; 
 		friend class		DedicatedMultiQueue;
 
+		bool				weAreBeingDeleted;
+
 };

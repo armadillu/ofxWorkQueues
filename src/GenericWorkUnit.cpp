@@ -22,6 +22,7 @@ GenericWorkUnit::GenericWorkUnit(){
 	processPercent = 0.0f;
 	debug = false;
 	highPriority = false;
+	weAreBeingDeleted = false;
 	//printf("new GenericWorkUnit ith ID %d\n", ID);
 }				
 	
@@ -88,7 +89,7 @@ void GenericWorkUnit::preProcess(){
 
 void GenericWorkUnit::postProcess(){
 	if (status == PENDING_CANCELLATION){
-		status = GenericWorkUnit::CANCELLED;
+		status = CANCELLED;
 		if(debug) printf("GenericWorkUnit::Aknowledged cancellation for workUnit %d\n", ID);
 	}else{
 		if (status != FAILED)
@@ -114,7 +115,9 @@ void GenericWorkUnit::threadedFunction(){
 		if(debug) printf("GenericWorkUnit::This WorkUnit (%d) was cancelled, thus it's not detached (we will join it in destructor)\n", ID);
 	}
 	#ifdef TARGET_OSX
-	pthread_detach(pthread_self()); //fixing that nasty zombie ofThread bug here
+	if (!weAreBeingDeleted){
+		pthread_detach(pthread_self()); //fixing that nasty zombie ofThread bug here
+	}
 	#endif
 };
 

@@ -33,13 +33,12 @@ DetachThreadQueue::~DetachThreadQueue(){
 	if(verbose) printf("DetachThreadQueue::~DetachThreadQueuedeleting deleting pending, processing and processed work units...\n");
 	while ( processing.size() > 0 ){
 		GenericWorkUnit * w = processing[0];
-		//w->lock();
 		if ( w->isThreadRunning() ){
+			w->weAreBeingDeleted = true;
 			w->cancel();
 			if(verbose) printf("WorkUnit(%d) waitForThread at destructor \n", w->getID());
 			w->waitForThread();
 		}
-		//w->unlock();
 		processing.erase( processing.begin() );
 		delete w;
 	}	
@@ -187,10 +186,8 @@ void DetachThreadQueue::threadedFunction(){
 
 					GenericWorkUnit * w = pending[0];
 					pending.erase( pending.begin() );
-
 					w->processInThread();
-				
-					processing.push_back(w);			
+					processing.push_back(w);
 				
 			}else{
 				needToRest = true;				
@@ -207,7 +204,7 @@ void DetachThreadQueue::threadedFunction(){
 	
 	if (!timeToStop){
 		if (verbose) printf("detaching DetachThreadQueue thread!\n");
-		stopThread();
+		pthread_detach(pthread_self()); //fixing that nasty zombie ofThread bug here
 	}
 }
 
