@@ -8,6 +8,8 @@ int resultBuffer = 100;		//how many results to keep in buffer before gathering
 float addWorkDuringFirstSeconds = 10;
 bool verbose = false;
 bool measureTimes = true;
+int cellWidth = 14;		//width of each cell
+bool drawID = false;	//draw each job's ID on top of its cell
 
 
 void testApp::setup(){	
@@ -15,7 +17,7 @@ void testApp::setup(){
 	ofSetVerticalSync(true);
 	ofSetFrameRate(64);
 	ofEnableAlphaBlending();
-	ofBackground(190);
+	ofBackground(22);
 
 	#ifdef WORK_QUEUE
 	q1 = new WorkQueue();		// A queue of work units, one processed after each other ( 1 thread )
@@ -115,9 +117,6 @@ void testApp::draw(){
 	
 	glColor3ub(255,0,0);
 	ofDrawBitmapString( ofToString( ofGetFrameRate(), 2), 10, 10);
-	
-	int cellWidth = 10;		//width of each cell
-	bool drawID = false;	//draw each job's ID on top of its cell
 
 	#ifdef WORK_QUEUE
 	q1->draw(30, 30, cellWidth, drawID);

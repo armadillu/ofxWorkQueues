@@ -9,7 +9,7 @@
 
 #include "MyWorkUnit.h"
 
-#define REAL_CPU_LOAD
+//#define REAL_CPU_LOAD
 
 MyWorkUnit::MyWorkUnit( int factorialInput ){
 	input = factorialInput;	//store the input
