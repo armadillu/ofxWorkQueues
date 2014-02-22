@@ -43,7 +43,7 @@ class WorkQueue : public ofThread{	//subclass the WorkQueue object to accomodate
 		void setQueueName(string name){ queueName = name; }
 		void setShowTimesInSeconds(bool b){timesInSeconds = b;}
 
-
+		float getAvgTimePerUnit(){return avgTimePerUnit;}
 		void join();	//experimental!
 		void setVerbose(bool v);
 
