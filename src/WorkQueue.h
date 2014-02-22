@@ -41,6 +41,7 @@ class WorkQueue : public ofThread{	//subclass the WorkQueue object to accomodate
 		void setMaxQueueLength(int l){ maxQueueLen = l; pending.reserve(maxQueueLen); }
 		void setMeasureTimes(bool m){ measureTimes = m; }
 		void setQueueName(string name){ queueName = name; }
+		void setShowTimesInSeconds(bool b){timesInSeconds = b;}
 
 
 		void join();	//experimental!
@@ -67,8 +68,10 @@ class WorkQueue : public ofThread{	//subclass the WorkQueue object to accomodate
 		int								numJobsExecuted;
 
 		bool							weAreBeingDeleted; //to avoid doing the last join on destruction, as then we can't do waitForThread
-
+		bool							timesInSeconds;
 		void threadedFunction();
 		void updateAverageTimes(float lastTime);
+
+
 	
 };

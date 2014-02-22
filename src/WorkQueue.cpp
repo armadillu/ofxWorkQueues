@@ -26,6 +26,7 @@ WorkQueue::WorkQueue(){
 	processed.clear();
 	numJobsExecuted = 0;
 	weAreBeingDeleted = false;
+	timesInSeconds = false;
 }
 
 
@@ -247,7 +248,11 @@ void WorkQueue::draw( int x, int y, int tileW, bool drawIDs, int queueID ){
 	string time;
 
 	if (measureTimes){
-		time = ofToString(1000.0f * avgTimePerUnit, 1) + "ms";
+		if (timesInSeconds){
+			time = ofToString( avgTimePerUnit, 1) + "sec";
+		}else{
+			time = ofToString(1000.0f * avgTimePerUnit, 1) + "ms";
+		}
 	}
 	
 	ofSetColor(255,255,255);

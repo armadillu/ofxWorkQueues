@@ -38,6 +38,8 @@ class DedicatedMultiQueue : public ofThread{
 		int getPendingQueueLength();
 		int getProcessedQueueLength();
 		int getTotalWaitingJobs();
+
+		WorkQueue * getQueueAt(int index){return workers[index];}
 		
 	private: 
 
